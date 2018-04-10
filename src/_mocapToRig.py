@@ -112,6 +112,7 @@ global proc hikUpdateCurrentSourceFromName(string $source)
     hikUpdateLiveConnectionUI;
     waitCursor -state false; 
 }
+
 '''
 
 import pymel.core as pc
@@ -216,7 +217,7 @@ def createHikDefinition():
     pc.mel.hikSelectDefinitionTab();    # select and update appropriate tab
     return hikDefinitionName        
         
-def applyMocapToRig():
+def applyMocapToRig(mocapPath=None):
     pc.mel.HIKCharacterControlsTool()
     startFrame = 0
     pc.playbackOptions(minTime=startFrame)
@@ -229,11 +230,13 @@ def applyMocapToRig():
     rigNamespace = control.namespace()
     
     # bring the mocap in
-    dialog = cui.SingleInputBox(parent=qtfy.getMayaWindow(),
-                                title='Mocap Skeleton Path', label='Path')
-    if dialog.exec_():
-        mocapPath = dialog.getValue().strip('"')
-    else: return
+    if not mocapPath:
+        dialog = cui.SingleInputBox(parent=qtfy.getMayaWindow(),
+                                    title='Mocap Skeleton Path', label='Path',
+                                    browseButton=True)
+        if dialog.exec_():
+            mocapPath = dialog.getValue().strip('"')
+        else: return
     if not osp.exists(mocapPath):
         pc.warning('Mocap Path does not exist')
         return
@@ -254,7 +257,4 @@ def applyMocapToRig():
     pc.mel.hikCreateCustomRig(rigHikDefinitionName)
     mapRigControls(rigNamespace)
     pc.mel.hikUpdateCurrentSourceFromName(hikDefinitionName)
-    endFrame = pc.keyframe(pc.listConnections(mocapNamespace + 'Hip', scn=1, s=1, d=0)[0], q=1)[-1]
-    pc.playbackOptions(maxTime=endFrame)
-    
-    #pc.mel.eval('bakeResults -simulation true -t "%s:%s" -sampleBy 1 -disableImplicitControl true -preserveOutsideKeys true -sparseAnimCurveBake false -removeBakedAttributeFromLayer false -removeBakedAnimFromLayer false -bakeOnOverrideLayer false -minimizeRotation true -controlPoints false -shape true {%s};'%(startFrame, endFrame, ', '.join(['"'+x+'"' for x in getRigControls(rigNamespace)])))
+    pc.select(getRigControls(rigNamespace))

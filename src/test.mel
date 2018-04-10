@@ -1,0 +1,36 @@
+'''
+Created on Apr 10, 2018
+
+@author: qurban.ali
+'''
+python("import pymel.core as pc\n"+
+"import sys\n"+
+"sys.path.insert(0, 'D:/My/Tasks/workSpace/utilities')\n"+
+"sys.path.insert(0, 'D:/My/Tasks')\n"+
+"sys.path.insert(0, 'D:/My/Tasks/workSpace')\n"+
+"import imaya\n"+
+"imaya.newScene()\n"+
+"imaya.addRef(r'D:/maya/mocap/rigs/fox_rig_v002.ma')\n"+
+"pc.select('fox_rig:RootX_M')\n"+
+"import mocapToRig as mr\n"+
+"reload(mr)\n"+
+"mr.applyMocapToRig(r'D:/test/farisTake1.fbx')\n\n");
+
+float $frames[];
+string $sf, $ef;
+
+string $animCurves[] = `listConnections -d off -s on -scn off "Hip"`;
+$frames = `keyframe -q $animCurves[0]`;
+$ef = $frames[size($frames) - 1];
+$sf = $frames[0];
+
+string $range = $sf + ":" + $ef;
+
+playbackOptions -maxTime $ef;
+
+bakeResults -simulation true -t $range -sampleBy 1 -disableImplicitControl true -preserveOutsideKeys true -sparseAnimCurveBake false -removeBakedAttributeFromLayer false -removeBakedAnimFromLayer false -bakeOnOverrideLayer false -minimizeRotation true -controlPoints false -shape true `ls -sl`;
+
+hikDeleteCustomRig(hikGetCurrentCharacter());
+hikDeleteDefinition();
+hikDeleteDefinition();
+delete "Hip";

@@ -1,0 +1,22 @@
+python("import mocapToRig as mr\n"+
+"reload(mr)\n"+
+"mr.applyMocapToRig()\n\n");
+
+float $frames[];
+string $sf, $ef;
+
+string $animCurves[] = `listConnections -d off -s on -scn off "Hip"`;
+$frames = `keyframe -q $animCurves[0]`;
+$ef = $frames[size($frames) - 1];
+$sf = $frames[0];
+
+string $range = $sf + ":" + $ef;
+
+playbackOptions -maxTime $ef;
+
+bakeResults -simulation true -t $range -sampleBy 1 -disableImplicitControl true -preserveOutsideKeys true -sparseAnimCurveBake false -removeBakedAttributeFromLayer false -removeBakedAnimFromLayer false -bakeOnOverrideLayer false -minimizeRotation true -controlPoints false -shape true `ls -sl`;
+
+hikDeleteCustomRig(hikGetCurrentCharacter());
+hikDeleteDefinition();
+hikDeleteDefinition();
+delete "Hip";
