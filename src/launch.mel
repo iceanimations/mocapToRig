@@ -1,7 +1,8 @@
 python("import mocapToRig as mr\n"+
 "reload(mr)\n"+
 "mr.applyMocapToRig()\n\n");
-
+if (`objExists "Hip"`)
+{
 float $frames[];
 string $sf, $ef;
 
@@ -20,3 +21,4 @@ hikDeleteCustomRig(hikGetCurrentCharacter());
 hikDeleteDefinition();
 hikDeleteDefinition();
 delete "Hip";
+}
