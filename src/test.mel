@@ -32,5 +32,6 @@ bakeResults -simulation true -t $range -sampleBy 1 -disableImplicitControl true 
 
 hikDeleteCustomRig(hikGetCurrentCharacter());
 hikDeleteDefinition();
+hikSelectDefinitionTab();
 hikDeleteDefinition();
 delete "Hip";

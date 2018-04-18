@@ -191,13 +191,10 @@ def mapRigControls(namespace):
     for node, num in rigControlsMappings.items():
         pc.select(namespace + node)
         pc.mel.hikCustomRigAssignEffector(num)
+    pc.select(cl=True)
 
 def getRigControls(namespace):
-    controls = []
-    pc.select(cl=True)    
-    for cntl in [namespace + x for x in rigControlsMappings.keys()]:
-        controls.append(cntl)
-    return controls
+    return [namespace + x for x in rigControlsMappings.keys()]
 
 def getUniqueName(name):
     cnt = 1
@@ -258,3 +255,17 @@ def applyMocapToRig(mocapPath=None):
     mapRigControls(rigNamespace)
     pc.mel.hikUpdateCurrentSourceFromName(hikDefinitionName)
     pc.select(getRigControls(rigNamespace))
+
+#     TODO: enable following code for maya 2018 and change the code in launch.mel
+#     animCurves = pc.listConnections("Hip", d=0, s=1, scn=0)
+#     frames = pc.keyframe(animCurves[0], q=1)
+#     endFrame = frames[-1]
+#     pc.playbackOptions(maxTime=endFrame)
+#     
+#     pc.mel.eval('bakeResults -simulation true -t "%s:%s" -sampleBy 1 -disableImplicitControl true -preserveOutsideKeys true -sparseAnimCurveBake false -removeBakedAttributeFromLayer false -removeBakedAnimFromLayer false -bakeOnOverrideLayer false -minimizeRotation true -controlPoints false -shape true `ls -sl`;'%(startFrame, endFrame))
+#     
+#     pc.mel.hikDeleteCustomRig(pc.mel.hikGetCurrentCharacter())
+#     pc.mel.hikDeleteDefinition()
+#     pc.mel.hikSelectDefinitionTab()
+#     pc.mel.hikDeleteDefinition()
+#     pc.delete("Hip")
