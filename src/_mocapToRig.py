@@ -45,10 +45,24 @@ def loadMapping(name, typ=MappingTypes.sk):
     with open(osp.join(MAPPINGS_DIR, '%s.%s.json' % (name, typ))) as _file:
         return json.read(_file)
 
-
 #######################
 #  Applying mappings  #
 #######################
+
+
+def checkMapping(mapping, namespace):
+    found = 0
+    for node, num in mapping.items():
+        if pc.objExists(namespace+node):
+            found += 1
+    return found
+
+
+def getMappingRoot(mapping):
+    for node, num in mapping.items():
+        if num == 1:
+            return node
+
 
 def mapMocapSkeleton(namespace, hikDefinitionName, mocapSkeletonMappings):
     for node, num in mocapSkeletonMappings.items():
@@ -65,6 +79,11 @@ def mapRigControls(namespace, rigControlsMappings):
         pc.select(namespace + node)
         pc.mel.hikCustomRigAssignEffector(num)
     pc.select(cl=True)
+
+
+#######################
+#  Utility functions  #
+#######################
 
 
 def getRigControls(namespace, rigControlsMappings):
@@ -89,6 +108,11 @@ def createHikDefinition():
     pc.mel.hikUpdateCharacterList()  # update the character list
     pc.mel.hikSelectDefinitionTab()  # select and update appropriate tab
     return hikDefinitionName
+
+
+###############################
+#  Main Application Function  #
+###############################
 
 
 def applyMocapToRig(
@@ -117,6 +141,9 @@ def applyMocapToRig(
         select mocap skeleton as source
         select character as Character
     '''
+    mocapSkeletonMappings = loadMapping(sourceName, MappingTypes.sk)
+    rigSkeletonMappings = loadMapping(targetName, MappingTypes.sk)
+    rigControlsMappings = loadMapping(targetName, MappingTypes.cr)
     pc.mel.HIKCharacterControlsTool()
     startFrame = 0
     pc.playbackOptions(minTime=startFrame)
@@ -151,21 +178,19 @@ def applyMocapToRig(
 
     # define HIK Skeleton
     hikDefinitionName = createHikDefinition()
-    mapMocapSkeleton(mocapNamespace, hikDefinitionName,
-                     loadMapping(sourceName, MappingTypes.sk))
+    mapMocapSkeleton(mocapNamespace, hikDefinitionName, mocapSkeletonMappings)
     pc.mel.hikToggleLockDefinition()
 
+    # define HIK skeleton for rig
     rigHikDefinitionName = createHikDefinition()
-    mapRigSkeleton(rigNamespace, rigHikDefinitionName,
-                   loadMapping(targetName, MappingTypes.sk))
+    mapRigSkeleton(rigNamespace, rigHikDefinitionName, rigSkeletonMappings)
     pc.mel.hikToggleLockDefinition()
 
+    # define HIK custom_rig for rig
     pc.mel.hikCreateCustomRig(rigHikDefinitionName)
-    mapRigControls(rigNamespace,
-                   loadMapping(targetName, MappingTypes.cr))
+    mapRigControls(rigNamespace, rigControlsMappings)
     pc.mel.hikUpdateCurrentSourceFromName(hikDefinitionName)
-    pc.select(getRigControls(rigNamespace),
-              loadMapping(targetName, MappingTypes.cr))
+    pc.select(getRigControls(rigNamespace), rigControlsMappings)
 
     # To stop maya 2016 from hanging on bake call this in MEL instead
     if pc.about(v=True) >= 2018:
@@ -189,4 +214,4 @@ def applyMocapToRig(
         pc.mel.hikDeleteDefinition()
         pc.mel.hikSelectDefinitionTab()
         pc.mel.hikDeleteDefinition()
-        pc.delete("Hip")
+        pc.delete(getMappingRoot(mocapSkeletonMappings))
