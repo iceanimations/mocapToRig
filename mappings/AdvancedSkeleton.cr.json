@@ -1,0 +1,17 @@
+{
+  "FKNeck_M": 20, 
+  "FKElbow_L": 10, 
+  "RootX_M": 1, 
+  "FKSpine1_M": 8, 
+  "FKScapula_R": 19, 
+  "FKScapula_L": 18, 
+  "FKSpine2_M": 23, 
+  "FKElbow_R": 13, 
+  "FKWrist_R": 14, 
+  "IKLeg_L": 4, 
+  "FKShoulder_R": 12, 
+  "FKShoulder_L": 9, 
+  "IKLeg_R": 7, 
+  "FKWrist_L": 11, 
+  "FKHead_M": 15
+}

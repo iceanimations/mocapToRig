@@ -1,0 +1,89 @@
+global proc hikUpdateCurrentSourceFromName(string $source)
+//
+// Description:
+//        Updates the source of the character when the drop-down
+//        list is changed 
+//
+{
+    waitCursor -state true;
+
+    // string $source = `optionMenuGrp -q -v hikSourceList`;
+
+    // if there`s a white space before, we must remove it
+    $source = stringRemovePrefix( $source, " " );
+
+    hikSetCurrentSource( $source );
+
+    int $isRemote = ( endsWith( $source, "(remote)" ) ) ? true : false;
+
+    string $character = hikGetCurrentCharacter();
+
+    // Disable the character. This disconnects the retargeter
+    hikEnableCharacter( $character, 2 );
+
+    // Next, reconnect to the new source...
+    if ( hikIsNoneCharacter( $source ) ) {
+        // If definition is locked, disable the character
+        // (which is done above). So do nothing here.
+        // If definition is not locked, what should happen??
+        if( hikIsDefinitionLocked($character) ) {
+            // do nothing
+        }
+        else {
+            
+        }
+    }
+    else {
+        string $labelControlRig = (uiRes("m_hikGlobalUtils.kControlRig")); 
+        string $labelStance= (uiRes("m_hikGlobalUtils.kStance")); 
+        if( $source == $labelControlRig ) {
+            // if we don't already have a control rig, create one.
+            // hikCreateControlRig will try to do the auto-locking
+            // of the definition.
+            //
+            int $hasControlRig = hikHasControlRig($character);
+            if( $hasControlRig ) {
+                hikSetRigInput($character);
+                hikSetLiveState( $character, 1 );
+                hikSelectControlRigTab();
+            }
+            else {
+                // Note: hikCreateControlRig will select the
+                // appropriate tab. If the definition was not
+                // valid, creation will fail and we'll select
+                // the definition tab...
+                //
+                hikCreateControlRig();
+            }
+        }
+        else {
+            // If the definition is not locked yet, try to lock it
+            if( !hikCheckDefinitionLocked($character) ) {
+                hikSelectDefinitionTab();    // select definition tab
+                waitCursor -state false; 
+                return;
+            }
+            
+            if( $source == $labelStance) {
+                hikSetStanceInput($character);
+            }
+            else {
+                hikEnableCharacter( $character, 1 );
+
+                if ( $isRemote )
+                    hikSetLiveCharacterInput( $character );
+                else
+                    hikSetCharacterInput( $character, $source );
+
+                if ( hikHasCustomRig( $character ) )
+                    hikSelectCustomRigTab;
+                else
+                    hikSelectControlRigTab;
+            }
+        }
+    }
+
+    hikUpdateLiveConnectionUI;
+    waitCursor -state false; 
+}
+
