@@ -1,3 +1,4 @@
 import src._mocapToRig as mr
 reload(mr)
-applyMocapToRig = mr.applyMocapToRig
+
+from src._mocapToRig import *

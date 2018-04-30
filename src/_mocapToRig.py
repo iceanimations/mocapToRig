@@ -4,7 +4,6 @@ Created on Mar 19, 2018
 @author: qurban.ali
 '''
 import pymel.core as pc
-import shot_subm.src.backend as ss_be
 import re
 import cui
 import os.path as osp
@@ -15,7 +14,7 @@ import glob
 
 MEL_PROC_FILE = osp.join(
     osp.dirname(__file__), 'hikUpdateCurrentSourceFromName.mel')
-pc.mel.source(MEL_PROC_FILE)
+pc.mel.source(MEL_PROC_FILE.replace('\\', '/'))
 
 
 ##################################
@@ -23,7 +22,7 @@ pc.mel.source(MEL_PROC_FILE)
 ##################################
 
 
-MAPPINGS_DIR = osp.join(osp.dirname(__file__), 'mappings')
+MAPPINGS_DIR = osp.join(osp.dirname(osp.dirname(__file__)), 'mappings')
 
 
 class MappingTypes:
@@ -43,19 +42,30 @@ def writeMapping(data, name, typ=MappingTypes.sk):
 
 def loadMapping(name, typ=MappingTypes.sk):
     with open(osp.join(MAPPINGS_DIR, '%s.%s.json' % (name, typ))) as _file:
-        return json.read(_file)
+        return json.load(_file)
 
 #######################
 #  Applying mappings  #
 #######################
 
 
-def checkMapping(mapping, namespace):
+def mappingMatches(mapping, namespace=''):
     found = 0
     for node, num in mapping.items():
         if pc.objExists(namespace+node):
             found += 1
-    return found
+    return found, len(mapping)
+
+
+def checkMappingCount(mappingName, namespace=''):
+    mapping = loadMapping(mappingName)
+    return mappingMatches(mapping, namespace)
+
+
+def checkMappingRoot(mappingName, namespace=''):
+    mapping = loadMapping(mappingName)
+    root = getMappingRoot(mapping)
+    return pc.objExists(namespace + root)
 
 
 def getMappingRoot(mapping):
@@ -110,6 +120,34 @@ def createHikDefinition():
     return hikDefinitionName
 
 
+def importMocap(mocapPath, namespace=None):
+    if not mocapPath:
+        dialog = cui.SingleInputBox(
+            parent=qtfy.getMayaWindow(),
+            title='Mocap Skeleton Path',
+            label='Path',
+            browseButton=True)
+        if dialog.exec_():
+            mocapPath = dialog.getValue().strip('"')
+        else:
+            return
+    if not osp.exists(mocapPath):
+        pc.warning('Mocap Path does not exist')
+        return
+
+    if namespace is None:
+        namespace = osp.splitext(osp.basename(mocapPath))[0]
+    pc.importFile(mocapPath, namespace=namespace)
+    return '' if osp.splitext(mocapPath) == '.fbx' else namespace
+
+
+def cleanupHIK(mocapRoot):
+        pc.mel.hikDeleteCustomRig(pc.mel.hikGetCurrentCharacter())
+        pc.mel.hikDeleteDefinition()
+        pc.mel.hikSelectDefinitionTab()
+        pc.mel.hikDeleteDefinition()
+        pc.delete(mocapRoot)
+
 ###############################
 #  Main Application Function  #
 ###############################
@@ -144,11 +182,15 @@ def applyMocapToRig(
     mocapSkeletonMappings = loadMapping(sourceName, MappingTypes.sk)
     rigSkeletonMappings = loadMapping(targetName, MappingTypes.sk)
     rigControlsMappings = loadMapping(targetName, MappingTypes.cr)
+
     pc.mel.HIKCharacterControlsTool()
+
+    # go to frame 0
     startFrame = 0
     pc.playbackOptions(minTime=startFrame)
     pc.currentTime(startFrame)
 
+    # resolve rig namespace
     if rigNamespace is None:
         try:
             control = pc.selected()[0]
@@ -157,24 +199,14 @@ def applyMocapToRig(
             return
         rigNamespace = control.namespace()
 
-    # bring the mocap in
-    if not mocapPath:
-        dialog = cui.SingleInputBox(
-            parent=qtfy.getMayaWindow(),
-            title='Mocap Skeleton Path',
-            label='Path',
-            browseButton=True)
-        if dialog.exec_():
-            mocapPath = dialog.getValue().strip('"')
-        else:
-            return
-    if not osp.exists(mocapPath):
-        pc.warning('Mocap Path does not exist')
-        return
+    mocapNamespace = importMocap(mocapPath)
+    if mocapNamespace and not mocapNamespace.endswith(':'):
+        mocapNamespace += ':'
 
-    mocapNamespace = osp.splitext(osp.basename(mocapPath))[0]
-    pc.importFile(mocapPath, namespace=mocapNamespace)
-    mocapNamespace = ''
+    # check if mocap is successfully imported
+    mocapRoot = mocapNamespace + getMappingRoot(mocapSkeletonMappings)
+    if not pc.objExists(mocapNamespace + mocapRoot):
+        pc.error("Could not find mocap Root node")
 
     # define HIK Skeleton
     hikDefinitionName = createHikDefinition()
@@ -192,14 +224,15 @@ def applyMocapToRig(
     pc.mel.hikUpdateCurrentSourceFromName(hikDefinitionName)
     pc.select(getRigControls(rigNamespace), rigControlsMappings)
 
+    animCurves = pc.listConnections(mocapRoot, d=0, s=1, scn=0)
+    frames = pc.keyframe(animCurves[0], q=1)
+    endFrame = frames[-1]
+    pc.playbackOptions(maxTime=endFrame)
+
     # To stop maya 2016 from hanging on bake call this in MEL instead
     if pc.about(v=True) >= 2018:
         # TODO: enable following code for maya 2018 and change the code in
         # launch.mel
-        animCurves = pc.listConnections("Hip", d=0, s=1, scn=0)
-        frames = pc.keyframe(animCurves[0], q=1)
-        endFrame = frames[-1]
-        pc.playbackOptions(maxTime=endFrame)
 
         pc.mel.eval((
                 'bakeResults -simulation true -t "%s:%s" -sampleBy 1'
@@ -210,8 +243,4 @@ def applyMocapToRig(
                 '-minimizeRotation true -controlPoints false -shape true `ls'
                 '-sl`;') % (startFrame, endFrame))
 
-        pc.mel.hikDeleteCustomRig(pc.mel.hikGetCurrentCharacter())
-        pc.mel.hikDeleteDefinition()
-        pc.mel.hikSelectDefinitionTab()
-        pc.mel.hikDeleteDefinition()
-        pc.delete(getMappingRoot(mocapSkeletonMappings))
+        cleanupHIK()
