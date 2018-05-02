@@ -19,99 +19,112 @@ global proc Mocap2RigUI() {
 					-columnSpacing 1 5 -columnSpacing 2 5 -columnSpacing 3 5
 					moctor_MainRCL;
 
+			{ // mocap Frame
 				frameLayout -label "Mocap"; // for mocap
-					columnLayout -adjustableColumn true;
-						optionMenuGrp
-								-label "Mapping:"
-								-extraLabel ".sk.json"
-								-columnAttach3 left left left
-								-columnAlign3 left left right
-								-columnWidth3 50 130 50
-								-changeCommand "moctor_CheckMocapStatus()"
-								moctor_MocapOMG;
-							menuItem -label "iPi";
-						textFieldButtonGrp
-								-label "Mocap:"
-								-text ""
-								-ad3 2
-								-cw3 50 150 50
-								-buttonLabel "..."
-								-buttonCommand "moctor_BrowseMocap()"
-								moctor_MocapFile;
-						button -label "Import Mocap" -c "moctor_ImportMocap()";
-						text -l "" moctor_MocapStatusLabel;
-						setParent ..; // back to frameLayout for mocap
-					setParent ..; // Exit frameLayout
+				columnLayout -adjustableColumn true;
+				optionMenuGrp
+					-label "Mapping:"
+					-extraLabel ".sk.json"
+					-columnAttach3 left left left
+					-columnAlign3 left left right
+					-columnWidth3 50 130 50
+					-changeCommand "moctor_CheckMocapStatus()"
+					moctor_MocapOMG;
+				menuItem -label "iPi";
+				textFieldButtonGrp
+					-label "Mocap:"
+					-text ""
+					-ad3 2
+					-cw3 50 150 50
+					-buttonLabel "..."
+					-buttonCommand "moctor_BrowseMocap()"
+					moctor_MocapFile;
+				button -label "Import Mocap" -c "moctor_ImportMocap()";
+				text -l "" moctor_MocapStatusLabel;
+				setParent ..; // back to frameLayout for mocap
+				setParent ..; // Exit frameLayout
+			}
 
+			{ // rig Frame
 				frameLayout -label "Rig";
-					columnLayout -adjustableColumn true;
-						optionMenuGrp
-								-label "Mapping"
-								-extraLabel ".cr.json"
-								-columnAttach3 left left left
-								-columnAlign3 left left right
-								-columnWidth3 50 130 50
-								-changeCommand "moctor_CheckRigStatus()"
-								moctor_RigOMG;
-							menuItem -label "AdvancedSkeleton";
-						textFieldButtonGrp
-								-label "Rig:"
-								-text ""
-								-ad3 2
-								-cw3 50 150 50
-								-buttonLabel "..."
-								-buttonCommand "moctor_BrowseRig()"
-								moctor_RigFile;
-						button -label "Import Rig"
-								-command
-								"moctor_ImportRig()";
-						text -l "" moctor_RigStatusLabel;
-						rowLayout -nc 2 -ad2 2 -cw2 160 90;
-							optionMenuGrp -label "Namespace"
-									-changeCommand "moctor_SetRigNamespace()"
-									-cw2 60 100
-									moctor_RigNamspaceOMG;
-								menuItem -l "Specified:";
-								menuItem -l "From Reference";
-								menuItem -l "From Selection";
-							textField
-									-changeCommand "moctor_CheckRigStatus()"
-									moctor_RigNamespaceField;
-							setParent ..;
-						setParent ..; // exit columnLayout;
-						button -l "Select Rig Controls"
-								-c "moctor_SelectControls()"
-								moctor_SelectControlsBtn;
-					setParent ..; // Exiting frameLayout
+				columnLayout -adjustableColumn true;
+				optionMenuGrp
+					-label "Mapping"
+					-extraLabel ".cr.json"
+					-columnAttach3 left left left
+					-columnAlign3 left left right
+					-columnWidth3 50 130 50
+					-changeCommand "moctor_CheckRigStatus()"
+					moctor_RigOMG;
+				menuItem -label "AdvancedSkeleton";
+				textFieldButtonGrp
+					-label "Rig:"
+					-text ""
+					-ad3 2
+					-cw3 50 150 50
+					-buttonLabel "..."
+					-buttonCommand "moctor_BrowseRig()"
+					moctor_RigFile;
+				button -label "Import Rig"
+					-command
+					"moctor_ImportRig()";
+				text -l "" moctor_RigStatusLabel;
+				rowLayout -nc 2 -ad2 2 -cw2 160 90;
+				optionMenuGrp -label "Namespace"
+					-changeCommand "moctor_SetRigNamespace()"
+					-cw2 60 100
+					moctor_RigNamspaceOMG;
+				menuItem -l "Specified:";
+				menuItem -l "From Reference";
+				menuItem -l "From Selection";
+				textField
+					-changeCommand "moctor_CheckRigStatus()"
+					moctor_RigNamespaceField;
+				setParent ..;
+				setParent ..; // exit columnLayout;
+				button -l "Select Rig Controls"
+					-c "moctor_SelectControls()"
+					moctor_SelectControlsBtn;
+				setParent ..; // Exiting frameLayout
 
-					button -l "Import Mocap and Rig" -c "moctor_ImportBoth()"
-							moctor_ImportBothBtn;
+			}
 
-					button -l "Map Mocap to HIK" -c "moctor_MapMocap()"
-							moctor_MapMocapBtn;
-					button -l "Map Rig to HIK" -c "moctor_MapRig()"
-							moctor_MapRigBtn;
-					button -l "Map Both to HIK" -c "moctor_MapBoth()"
-							moctor_MapBothBtn;
+				button -l "Import Mocap and Rig" -c "moctor_ImportBoth()"
+						moctor_ImportBothBtn;
 
-					text -l "" moctor_MocapMappingStatus;
-					text -l "" moctor_RigMappingStatus;
-					button -l "Bake Animation" -c "moctor_BakeRig()"
-							moctor_BakeRigBtn;
+			{ // mapping buttons
+				button -l "Map Mocap to HIK" -c "moctor_MapMocap()"
+					moctor_MapMocapBtn;
+				button -l "Map Rig to HIK" -c "moctor_MapRig()"
+					moctor_MapRigBtn;
+				button -l "Map Both to HIK" -c "moctor_MapBoth()"
+					moctor_MapBothBtn;
+			}
 
-					button -l "Cleanup Mocap HIK" -c "moctor_CleanupMocapHIK"
-							moctor_CleanupMocapHIKBtn;
-					button -l "Cleanup Rig HIK" -c "moctor_CleanupRigHIK"
-							moctor_CleanupRigHIKBtn;
-					button -l "Cleanup Both HIK" -c "moctor_CleanupBothHIK"
-							moctor_CleanupBothHIKBtn;
+			{ // status and baking
+				text -l "" moctor_MocapMappingStatus;
+				text -l "" moctor_RigMappingStatus;
+				button -l "Bake Animation" -c "moctor_BakeRig()"
+					moctor_BakeRigBtn;
+			}
 
-					button -l "Delete Mocap" -c "moctor_DeleteMocap()"
-							moctor_DeleteMocapBtn;
-					button -l "Import Rig Reference" -c "moctor_ImportRef()"
-							moctor_ImportRefBtn;
-					button -l "Delete Mocap and Import Reference"
-							-c "moctor_Delete();" moctor_DeleteBtn;
+			{ // Clean up
+				button -l "Cleanup Mocap HIK" -c "moctor_CleanupMocapHIK"
+					moctor_CleanupMocapHIKBtn;
+				button -l "Cleanup Rig HIK" -c "moctor_CleanupRigHIK"
+					moctor_CleanupRigHIKBtn;
+				button -l "Cleanup Both HIK" -c "moctor_CleanupBothHIK"
+					moctor_CleanupBothHIKBtn;
+			}
+
+			{ // Delete and Import
+				button -l "Delete Mocap" -c "moctor_DeleteMocap()"
+					moctor_DeleteMocapBtn;
+				button -l "Import Rig Reference" -c "moctor_ImportRef()"
+					moctor_ImportRefBtn;
+				button -l "Delete Mocap and Import Reference"
+					-c "moctor_Delete();" moctor_DeleteBtn;
+			}
 
 				setParent ..; // Exit mainRC
 			setParent ..; // Back to main ColumnLayout
