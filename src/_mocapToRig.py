@@ -3,6 +3,8 @@ Created on Mar 19, 2018
 
 @author: qurban.ali
 '''
+
+
 import pymel.core as pc
 import re
 import cui
@@ -10,6 +12,7 @@ import os.path as osp
 import qtify_maya_window as qtfy
 import json
 import glob
+import imaya
 
 
 MEL_PROC_FILE = osp.join(
@@ -44,6 +47,7 @@ def loadMapping(name, typ=MappingTypes.sk):
     with open(osp.join(MAPPINGS_DIR, '%s.%s.json' % (name, typ))) as _file:
         return json.load(_file)
 
+
 #######################
 #  Applying mappings  #
 #######################
@@ -57,13 +61,13 @@ def mappingMatches(mapping, namespace=''):
     return found, len(mapping)
 
 
-def checkMappingCount(mappingName, namespace=''):
-    mapping = loadMapping(mappingName)
+def checkMappingCount(mappingName, namespace='', typ=MappingTypes.sk):
+    mapping = loadMapping(mappingName, typ=typ)
     return mappingMatches(mapping, namespace)
 
 
-def checkMappingRoot(mappingName, namespace=''):
-    mapping = loadMapping(mappingName)
+def checkMappingRoot(mappingName, namespace='', typ=MappingTypes.sk):
+    mapping = loadMapping(mappingName, typ=typ)
     root = getMappingRoot(mapping)
     return pc.objExists(namespace + root)
 
@@ -141,12 +145,58 @@ def importMocap(mocapPath, namespace=None):
     return '' if osp.splitext(mocapPath) == '.fbx' else namespace
 
 
+def importRig(rigPath):
+    if not rigPath:
+        dialog = cui.SingleInputBox(
+                parent=qtfy.getMayaWindow(), title='Rig Path',
+                label='Path', browseButton=True, fileFilter='*.ma;*.mb')
+        if dialog.exec_():
+            rigPath = dialog.getValue().strip('"')
+        else:
+            return "-1"
+    namespace = getNamespaceFromReference(rigPath)
+    if namespace == "-1":
+        namespace = imaya.addRef(rigPath).namespace
+    return namespace
+
+
 def cleanupHIK(mocapRoot):
         pc.mel.hikDeleteCustomRig(pc.mel.hikGetCurrentCharacter())
         pc.mel.hikDeleteDefinition()
         pc.mel.hikSelectDefinitionTab()
         pc.mel.hikDeleteDefinition()
         pc.delete(mocapRoot)
+
+
+def getNamespaceFromSelection():
+    # resolve rig namespace
+    try:
+        control = pc.selected()[0]
+    except IndexError:
+        pc.warning('No selection found in the scene')
+        return "-1"
+    rigNamespace = control.namespace()
+    return rigNamespace
+
+
+def getNamespaceFromReference(rigPath):
+    rigPath = osp.normcase(osp.normpath(rigPath))
+    for ref in pc.ls(type='reference'):
+        refFile = ref.referenceFile()
+        refPath = osp.normpath(osp.normcase(ref.referenceFile().path))
+        if rigPath == refPath:
+            return refFile.namespace
+    return '-1'
+
+
+def getReferencePathFromNamespace(namespace):
+    namespace = namespace.strip(':')
+    for ref in pc.ls(type='reference'):
+        refFile = ref.referenceFile()
+        if refFile.namespace == namespace:
+            return ref.referenceFile().path
+    return '-1'
+
 
 ###############################
 #  Main Application Function  #
@@ -192,12 +242,7 @@ def applyMocapToRig(
 
     # resolve rig namespace
     if rigNamespace is None:
-        try:
-            control = pc.selected()[0]
-        except IndexError:
-            pc.warning('No selection found in the scene')
-            return
-        rigNamespace = control.namespace()
+        rigNamespace = getNamespaceFromSelection()
 
     mocapNamespace = importMocap(mocapPath)
     if mocapNamespace and not mocapNamespace.endswith(':'):

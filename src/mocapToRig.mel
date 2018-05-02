@@ -3,94 +3,129 @@ python("import mocapToRig as moctor\n"+
 
 //python("moctor.applyMocapToRig()\n\n");
 
-
 global proc Mocap2RigUI() {
 	moctor_Close();
 
-	window -title "Mocap To Rig" -widthHeight 600 200 Mocap2RigUI;
+	window -title "Mocap To Rig" -widthHeight 700 338 -sizeable true Mocap2RigUI;
 
-		columnLayout -adjustableColumn true moctor_MainCL;
+		columnLayout -adjustableColumn true -rowSpacing 5 moctor_MainCL;
 
 			button -label "New Scene"
 					-command ("moctor_NewScene()")
 					moctor_NewSceneBtn;
 
-			rowLayout -nc 3 -ad3 3 -cw3 250 250 200 moctor_MainRL;
+			rowColumnLayout -numberOfColumns 3 -columnWidth 1 250
+					-columnWidth 2 250 -columnWidth 3 200 -rowSpacing 1 5
+					-columnSpacing 1 5 -columnSpacing 2 5 -columnSpacing 3 5
+					moctor_MainRCL;
 
-				columnLayout moctor_MocapCL;
-
-					frameLayout -label "Mocap";
-						columnLayout;
-							optionMenuGrp
-									-label "Mapping:"
-									-extraLabel ".sk.json"
-									-columnAttach3 left left left
-									-columnAlign3 left left right
-									-columnWidth3 50 130 50
-									-changeCommand "moctor_CheckMocapStatus()"
-									moctor_SourceOMG;
-								menuItem -label "iPi";
-							textFieldButtonGrp
-									-label "FBX:"
-									-text ""
-									-ad3 2
-									-cw3 50 150 50
-									-buttonLabel "..."
-									-buttonCommand "moctor_BrowseMocap()"
-									-changeCommand "moctor_CheckMocapStatus()"
-									moctor_SourceFile;
-							setParent ..;
-						button -label "Import" -c "moctor_LoadMocap()";
+				frameLayout -label "Mocap"; // for mocap
+					columnLayout -adjustableColumn true;
+						optionMenuGrp
+								-label "Mapping:"
+								-extraLabel ".sk.json"
+								-columnAttach3 left left left
+								-columnAlign3 left left right
+								-columnWidth3 50 130 50
+								-changeCommand "moctor_CheckMocapStatus()"
+								moctor_MocapOMG;
+							menuItem -label "iPi";
+						textFieldButtonGrp
+								-label "Mocap:"
+								-text ""
+								-ad3 2
+								-cw3 50 150 50
+								-buttonLabel "..."
+								-buttonCommand "moctor_BrowseMocap()"
+								moctor_MocapFile;
+						button -label "Import Mocap" -c "moctor_ImportMocap()";
 						text -l "" moctor_MocapStatusLabel;
-						setParent ..;
+						setParent ..; // back to frameLayout for mocap
+					setParent ..; // Exit frameLayout
 
-					setParent ..;
-
-				columnLayout moctor_RigCL;
-
-					frameLayout -label "Rig";
-						columnLayout;
-							optionMenuGrp
-									-label "Mapping"
-									-extraLabel ".cr.json"
-									-columnAttach3 left left left
-									-columnAlign3 left left right
-									-columnWidth3 50 130 50
-									moctor_TargetOMG;
-								menuItem -label "AdvancedSkeleton";
-							textFieldButtonGrp
-									-label "Rig:"
-									-text ""
-									-ad3 2
-									-cw3 50 150 50
-									-buttonLabel "..."
-									-buttonCommand "moctor_BrowseRig()"
-									-changeCommand "moctor_CheckMocapStatus()"
-									moctor_TargetFile;
-							setParent ..;
-						button;
+				frameLayout -label "Rig";
+					columnLayout -adjustableColumn true;
+						optionMenuGrp
+								-label "Mapping"
+								-extraLabel ".cr.json"
+								-columnAttach3 left left left
+								-columnAlign3 left left right
+								-columnWidth3 50 130 50
+								-changeCommand "moctor_CheckRigStatus()"
+								moctor_RigOMG;
+							menuItem -label "AdvancedSkeleton";
+						textFieldButtonGrp
+								-label "Rig:"
+								-text ""
+								-ad3 2
+								-cw3 50 150 50
+								-buttonLabel "..."
+								-buttonCommand "moctor_BrowseRig()"
+								moctor_RigFile;
+						button -label "Import Rig"
+								-command
+								"moctor_ImportRig()";
 						text -l "" moctor_RigStatusLabel;
-						setParent ..;
+						rowLayout -nc 2 -ad2 2 -cw2 160 90;
+							optionMenuGrp -label "Namespace"
+									-changeCommand "moctor_SetRigNamespace()"
+									-cw2 60 100
+									moctor_RigNamspaceOMG;
+								menuItem -l "Specified:";
+								menuItem -l "From Reference";
+								menuItem -l "From Selection";
+							textField
+									-changeCommand "moctor_CheckRigStatus()"
+									moctor_RigNamespaceField;
+							setParent ..;
+						setParent ..; // exit columnLayout;
+						button -l "Select Rig Controls"
+								-c "moctor_SelectControls()"
+								moctor_SelectControlsBtn;
+					setParent ..; // Exiting frameLayout
 
-					setParent ..;
+					button -l "Import Mocap and Rig" -c "moctor_ImportBoth()"
+							moctor_ImportBothBtn;
 
-				columnLayout moctor_BothCL;
-					button;
-					button;
-					setParent ..;
+					button -l "Map Mocap to HIK" -c "moctor_MapMocap()"
+							moctor_MapMocapBtn;
+					button -l "Map Rig to HIK" -c "moctor_MapRig()"
+							moctor_MapRigBtn;
+					button -l "Map Both to HIK" -c "moctor_MapBoth()"
+							moctor_MapBothBtn;
 
-				setParent ..; // back to rowLayout
+					text -l "" moctor_MocapMappingStatus;
+					text -l "" moctor_RigMappingStatus;
+					button -l "Bake Animation" -c "moctor_BakeRig()"
+							moctor_BakeRigBtn;
 
-			setParent ..; // back to main ColumnLayout;
+					button -l "Cleanup Mocap HIK" -c "moctor_CleanupMocapHIK"
+							moctor_CleanupMocapHIKBtn;
+					button -l "Cleanup Rig HIK" -c "moctor_CleanupRigHIK"
+							moctor_CleanupRigHIKBtn;
+					button -l "Cleanup Both HIK" -c "moctor_CleanupBothHIK"
+							moctor_CleanupBothHIKBtn;
 
-			rowLayout -nc 3 -adjustableColumn true;
+					button -l "Delete Mocap" -c "moctor_DeleteMocap()"
+							moctor_DeleteMocapBtn;
+					button -l "Import Rig Reference" -c "moctor_ImportRef()"
+							moctor_ImportRefBtn;
+					button -l "Delete Mocap and Import Reference"
+							-c "moctor_Delete();" moctor_DeleteBtn;
+
+				setParent ..; // Exit mainRC
+			setParent ..; // Back to main ColumnLayout
+
+			rowLayout -nc 3 -adjustableColumn true; // for button box
 				button -label "Apply" -command "moctor_Do()" moctor_ApplyBtn;
 				button -label "Close" -command "moctor_Close()" moctor_CloseBtn;
-				setParent ..;
+				setParent ..; // back to rowLayout for button box
 		setParent ..;
 
 	showWindow Mocap2RigUI;
 
+	optionMenuGrp -e -select 3 moctor_RigNamspaceOMG;
+	moctor_SetRigNamespace();
 	moctor_CheckMocapStatus();
 	moctor_CheckRigStatus();
 }
@@ -111,26 +146,91 @@ global proc moctor_Do() {
 }
 
 global proc moctor_CheckMocapStatus() {
-	string $mapping = `optionMenuGrp -q -v moctor_SourceOMG`;
+	string $mapping = `optionMenuGrp -q -v moctor_MocapOMG`;
 	int $rootExists = python(
 			`format -s $mapping "moctor.checkMappingRoot('^1s')"`);
+	float $color[] = {
+			1, 0, 0 };
 	if ($rootExists) {
 		int $matches[] = python(
 				`format -s $mapping "moctor.checkMappingCount('^1s')"`);
 		string $str = `format
 				-s ((string)($matches[0])) -s ((string)($matches[1]))
 				"^1s of ^2s found"`;
-		text -e -l $str -bgc 1 1 1 moctor_MocapStatusLabel;
+		$color = {
+				1, 1, 0};
+		if ($matches[0] == $matches[1])
+			$color = {
+					1, 1, 1};
+		text -e -l $str -bgc $color[0] $color[1] $color[2]
+				moctor_MocapStatusLabel;
 	}
 	else {
-		text -e -l "Mocap Root Not Found!" -bgc 1 0 0 moctor_MocapStatusLabel;
+		text -e -l "Mocap Root Not Found!" -bgc $color[0] $color[1] $color[2]
+				moctor_MocapStatusLabel;
 	}
 }
 
-global proc moctor_LoadMocap() {
-	string $fbx = `textFieldButtonGrp -q -text moctor_SourceFile`;
+global proc moctor_ImportMocap() {
+	string $fbx = `textFieldButtonGrp -q -text moctor_MocapFile`;
+	if ($fbx == "") {
+		confirmDialog -icn "critical" -m "No FBX Specified";
+		error("No FBX Specified");
+	}
 	python(`format -s $fbx "moctor.importMocap(r'^1s')"`);
-	$rootExists = moctor_CheckMocapStatus();
+	moctor_CheckMocapStatus();
+}
+
+proc string getRigNamespace() {
+	string $namespace = `textField -q -text moctor_RigNamespaceField`;
+	if ($namespace != "" && !endsWith($namespace, ":")) {
+		$namespace += ":";
+	}
+	return $namespace;
+}
+
+proc setRigNamespace(string $namespace) {
+	if ($namespace != "" && !endsWith($namespace, ":")) {
+		$namespace += ":";
+	}
+	string $namespace = `textField -e
+			-text $namespace moctor_RigNamespaceField`;
+	moctor_CheckRigStatus();
+}
+
+global proc string moctor_SetRigNamespace() {
+	string $option = `optionMenuGrp -q -v moctor_RigNamspaceOMG`;
+	string $old_ns = getRigNamespace();
+	string $new_ns = $old_ns;
+	switch($option){
+		case "Specified:":
+			break;
+		case "From Selection":
+			$new_ns = python("moctor.getNamespaceFromSelection()");
+			break;
+		case "From Reference":
+			$path = `textFieldButtonGrp -q -text moctor_RigFile`;
+			$new_ns = python(`format -s $path
+					"moctor.getNamespaceFromReference('^1s')"`);
+			break;
+	}
+	if ($new_ns != "-1" && $old_ns != $new_ns)
+		setRigNamespace($new_ns);
+	optionMenuGrp -e -sl 1 moctor_RigNamspaceOMG;
+	return $new_ns;
+}
+
+global proc moctor_ImportRig() {
+	string $rig = `textFieldButtonGrp -q -text moctor_RigFile`;
+	if ($rig == "") {
+		confirmDialog -icn "critical" -m "No Rig Specified";
+		error("No Rig Specified");
+	}
+	$namespace = python(`format -s $rig "moctor.importRig(r'^1s')"`);
+	if ($namespace != "-1") {
+		setRigNamespace($namespace);
+	}
+	moctor_CheckRigStatus();
 }
 
 global proc string[] moctor_BrowseMocap() {
@@ -138,18 +238,86 @@ global proc string[] moctor_BrowseMocap() {
 			-fileFilter "*.fbx"
 			-fileMode 1
 			-cap "Select Mocap File"`;
-	print $paths; print "\n";
-	textFieldButtonGrp -e -text $paths[0] moctor_SourceFile;
+	textFieldButtonGrp -e -text $paths[0] moctor_MocapFile;
 	return $paths;
 }
 
 global proc moctor_CheckRigStatus() {
-	warning "Checking";
+	$namespace = getRigNamespace();
+
+	$path = python(`format -s $namespace
+			"moctor.getReferencePathFromNamespace('^1s')"`);
+	if ($path != -1) {
+		textFieldButtonGrp -e -text $path moctor_RigFile;
+	}
+
+	string $mapping_sk = `optionMenuGrp -q -v moctor_RigOMG`;
+	string $mapping_cr = `optionMenuGrp -q -v moctor_RigOMG`;
+	int $rootExists_sk = python(
+			`format -s $mapping_sk -s $namespace
+					"moctor.checkMappingRoot('^1s', '^2s')"`);
+	int $rootExists_cr = python(
+			`format -s $mapping_cr -s $namespace
+					"moctor.checkMappingRoot('^1s', '^2s', 'cr')"`);
+	float $color[] = {
+			1, 0, 0};
+	if ($rootExists_sk && $rootExists_cr) {
+		int $matches_sk[] = python(
+				`format -s $mapping_sk -s $namespace
+						"moctor.checkMappingCount('^1s', '^2s')"`);
+		int $matches_cr[] = python(
+				`format -s $mapping_cr -s $namespace
+						"moctor.checkMappingCount('^1s', '^2s', 'cr')"`);
+		string $str = `format
+				-s ((string)($matches_sk[0])) -s ((string)($matches_sk[1]))
+				"Skeleton: ^1s of ^2s"`;
+		$str += `format -s ((string)($matches_cr[0]))
+				-s ((string)($matches_cr[1])) ", Control Rig: ^1s of ^2s"`;
+		$color = {
+				1, 1, 0};
+		if ( ($matches_sk[0] == $matches_sk[1]) &&
+				($matches_cr[0] == $matches_cr[1]) )
+			$color = {
+					1, 1, 1};
+		text -e -l $str -bgc $color[0] $color[1] $color[2]
+				moctor_RigStatusLabel;
+	}
+	else {
+		$text = "Root(s) not found:";
+		if (!$rootExists_sk) {
+			$text += " Skeleton";
+		}
+		if (!$rootExists_cr) {
+			$text += " Controls";
+		}
+		text -e -l $text -bgc $color[0] $color[1] $color[2]
+				moctor_RigStatusLabel;
+	}
+}
+
+global proc string[] moctor_BrowseRig() {
+	string $paths[] = `fileDialog2
+			-fileFilter
+				"Maya (*.ma *.mb);;Maya ASCII (*.ma);;Maya Binary (*.mb);"
+			-selectFileFilter "Maya ASCII"
+			-fileMode 1
+			-cap "Select Rig File"`;
+	print "Paths"; print "\n";
+	print $paths;
+	if ($paths[0] != "") {
+		textFieldButtonGrp -e -text $paths[0] moctor_RigFile;
+	}
+	return $paths;
+}
+
+global proc moctor_ImportBoth() {
+	moctor_ImportMocap();
+	moctor_ImportRig();
 }
 
 Mocap2RigUI();
 
-if (`objExists "Hip"`) {
+if (false && `objExists "Hip"`) {
 float $frames[];
 string $sf, $ef;
 
