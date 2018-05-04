@@ -13,6 +13,7 @@ import qtify_maya_window as qtfy
 import json
 import glob
 import imaya
+import traceback
 
 
 MEL_PROC_FILE = osp.join(
@@ -38,7 +39,7 @@ def getMappingNames(typ=MappingTypes.sk):
             for _file in glob.glob(osp.join(MAPPINGS_DIR, '*.%s.json' % typ))]
 
 
-def writeMapping(data, name, typ=MappingTypes.sk):
+def dumpMapping(data, name, typ=MappingTypes.sk):
     with open(osp.join(MAPPINGS_DIR, '%s.%s.json' % (name, typ)), 'w+') as _fl:
         return json.dump(data, _fl, indent=2)
 
@@ -51,7 +52,6 @@ def loadMapping(name, typ=MappingTypes.sk):
 #######################
 #  Applying mappings  #
 #######################
-
 
 def mappingMatches(mapping, namespace=''):
     found = 0
@@ -76,23 +76,124 @@ def getMappingRoot(mapping):
     for node, num in mapping.items():
         if num == 1:
             return node
+    return ''
 
 
-def mapMocapSkeleton(namespace, hikDefinitionName, mocapSkeletonMappings):
+def getHikDefFromSKRoot(namespace, skRoot):
+    try:
+        node = pc.PyNode(namespace + skRoot)
+        characterNode = node.Character.outputs(type=pc.nt.HIKCharacterNode)
+        if characterNode:
+            return characterNode[0].name()
+    except (AttributeError, IndexError, pc.MayaNodeError):
+        pc.warning ("No Character Found")
+    return ''
+
+
+def getHikDefFromCRRoot(namespace, crRoot):
+    crRoot = pc.PyNode(namespace + crRoot)
+
+    try:
+        mappingNode = crRoot.message.outputs(
+                type='CustomRigDefaultMappingNode')[0]
+        skeletonRoot = mappingNode.destinationSkeleton.inputs(
+                type='CustomRigDefaultMappingNode')[0]
+        characterNode = skeletonRoot.Character.outputs(
+                type='HIKCharacterNode')
+
+        if characterNode:
+            return characterNode[0].name()
+        else:
+            ''
+
+    except IndexError as ie:
+        print str(ie)
+        traceback.print_exc()
+        pc.warning('Cannot find connection to definition from mapping')
+        return ''
+
+
+def mapMocapSkeleton(namespace, mocapSkeletonMappings):
+    prepareHIK()
+    root = getMappingRoot(mocapSkeletonMappings)
+    setRange(namespace + root)
+    defname = getHikDefFromSKRoot(namespace, root)
+    if not defname:
+        defname = createHikDefinition(name='MocapCharacter1')
+    else:
+        pc.mel.hikSetCurrentCharacter(defname)
+        pc.mel.hikToggleLockDefinition()
     for node, num in mocapSkeletonMappings.items():
-        pc.mel.setCharacterObject(namespace + node, hikDefinitionName, num, 0)
+        try:
+            pc.mel.setCharacterObject(namespace + node, defname, num, 0)
+        except RuntimeError:
+            pass
+    pc.mel.hikToggleLockDefinition()
+    return defname
 
 
-def mapRigSkeleton(namespace, hikDefinitionName, rigSkeletonMappings):
+def mapRigSkeleton(namespace, rigSkeletonMappings):
+    prepareHIK()
+    selection = pc.selected()
+    root = getMappingRoot(rigSkeletonMappings)
+    defname = getHikDefFromSKRoot(namespace, root)
+    if not defname:
+        defname = createHikDefinition(name='MocapCharacter1')
+    else:
+        pc.mel.hikSetCurrentCharacter(defname)
+        pc.mel.hikToggleLockDefinition()
     for node, num in rigSkeletonMappings.items():
-        pc.mel.setCharacterObject(namespace + node, hikDefinitionName, num, 0)
+        try:
+            pc.mel.setCharacterObject(
+                    namespace + node, defname, num, 0)
+        except RuntimeError as re:
+            print (str(e), namespace + node, 'not found')
+    pc.mel.hikToggleLockDefinition()
+    pc.select(selection)
+    return defname
 
 
-def mapRigControls(namespace, rigControlsMappings):
+def mapRigControls(namespace, defname, rigControlsMappings):
+    prepareHIK()
+    pc.mel.hikSelectDefinitionTab()  # select and update appropriate tab
+    selection = pc.selected()
+
+    if not pc.mel.hikHasCustomRig(defname):
+        pc.mel.hikCreateCustomRig(defname)
+    pc.mel.hikSelectCustomRigTab()
+
     for node, num in rigControlsMappings.items():
-        pc.select(namespace + node)
-        pc.mel.hikCustomRigAssignEffector(num)
-    pc.select(cl=True)
+        try:
+            pc.select(namespace + node)
+            pc.mel.hikCustomRigAssignEffector(num)
+        except RuntimeError:
+            pass
+
+    pc.select(selection)
+
+
+def mapMocap(mappingName):
+    return mapMocapSkeleton('', loadMapping(mappingName))
+
+
+def mapRig(namespace, mappingName):
+    mapping = loadMapping(mappingName, typ=MappingTypes.Skeleton)
+    defname = mapRigSkeleton(namespace, mapping)
+    mapping = loadMapping(mappingName, typ=MappingTypes.ControlRig)
+    mapRigControls(namespace, defname, mapping)
+    return defname
+
+
+def getMocapHikDefinition(mappingName):
+    mapping = loadMapping(mappingName)
+    root = getMappingRoot(mapping)
+    return getHikDefFromSKRoot('', root)
+
+
+def getRigHikDefinition(namespace, mappingName):
+    mapping = loadMapping(mappingName)
+    root = getMappingRoot(mapping, typ=MappingTypes.cr)
+    return getHikDefFromCRRoot(namespace, root)
 
 
 #######################
@@ -100,8 +201,36 @@ def mapRigControls(namespace, rigControlsMappings):
 #######################
 
 
-def getRigControls(namespace, rigControlsMappings):
-    return [namespace + x for x in rigControlsMappings.keys()]
+def linkMocapHikToRigHik(mocapDefinition, rigDefinition):
+    pc.mel.hikSetCurrentCharacter(rigDefinition)
+    pc.mel.hikUpdateCurrentSourceFromName(mocapDefinition)
+
+
+def bakeRig(namespace, mocapMappingName, rigMappingName):
+    mocapMapping = loadMapping(mocapMappingName, typ=MappingTypes.sk)
+    rigMapping = loadMapping(rigMappingName, typ=MappingTypes.cr)
+
+    mocapRoot = getMappingRoot(mocapMapping)
+    startFrame, endFrame = getAnimRange(mocapRoot)
+
+    selection = pc.selected()
+    getRigControls(namespace, rigMapping, True)
+    pc.mel.eval((
+            'bakeResults -simulation true -t "%s:%s" -sampleBy 1'
+            '-disableImplicitControl true -preserveOutsideKeys true'
+            '-sparseAnimCurveBake false'
+            '-removeBakedAttributeFromLayer false'
+            '-removeBakedAnimFromLayer false -bakeOnOverrideLayer false'
+            '-minimizeRotation true -controlPoints false -shape true `ls'
+            '-sl`;') % (startFrame, endFrame))
+    pc.select(selection)
+
+
+def getRigControls(namespace, rigControlsMappings, select=False):
+    controls = [namespace + x for x in rigControlsMappings.keys()]
+    if select:
+        pc.select(controls)
+    return controls
 
 
 def getUniqueName(name):
@@ -116,8 +245,8 @@ def getUniqueName(name):
     return name
 
 
-def createHikDefinition():
-    hikDefinitionName = getUniqueName('Character1')
+def createHikDefinition(name='MocapCharacter1'):
+    hikDefinitionName = getUniqueName(name)
     pc.mel.hikCreateCharacter(hikDefinitionName)
     pc.mel.hikUpdateCharacterList()  # update the character list
     pc.mel.hikSelectDefinitionTab()  # select and update appropriate tab
@@ -154,7 +283,7 @@ def importRig(rigPath):
             rigPath = dialog.getValue().strip('"')
         else:
             return "-1"
-    namespace = getNamespaceFromReference(rigPath)
+    namespace = getNamespaceFromReferencePath(rigPath)
     if namespace == "-1":
         namespace = imaya.addRef(rigPath).namespace
     return namespace
@@ -179,7 +308,7 @@ def getNamespaceFromSelection():
     return rigNamespace
 
 
-def getNamespaceFromReference(rigPath):
+def getNamespaceFromReferencePath(rigPath):
     rigPath = osp.normcase(osp.normpath(rigPath))
     for ref in pc.ls(type='reference'):
         refFile = ref.referenceFile()
@@ -198,6 +327,26 @@ def getReferencePathFromNamespace(namespace):
     return '-1'
 
 
+def prepareHIK(startFrame=0):
+    pc.mel.HIKCharacterControlsTool()
+    pc.playbackOptions(minTime=startFrame)
+    pc.currentTime(startFrame)
+
+
+def setRange(mocapRoot):
+    startFrame, endFrame = getAnimRange(mocapRoot)
+    pc.playbackOptions(minTime=startFrame, maxTime=endFrame)
+
+
+def getAnimRange(mocapRoot):
+    animCurves = pc.listConnections(
+            mocapRoot, d=0, s=1, scn=0, type='animCurve')
+    frames = pc.keyframe(animCurves[0], q=1)
+    startFrame = frames[0]
+    endFrame = frames[-1]
+    return startFrame, endFrame
+
+
 ###############################
 #  Main Application Function  #
 ###############################
@@ -205,7 +354,7 @@ def getReferencePathFromNamespace(namespace):
 
 def applyMocapToRig(
         mocapPath=None, rigNamespace=None,
-        sourceName='iPi', targetName='AdvancedSkeleton'):
+        mocapMapping='iPi', rigMapping='AdvancedSkeleton', rigPath=None):
     '''
     ###########################################################################
     #            Procedure for mapping mocap data to a custom Rig             #
@@ -229,19 +378,17 @@ def applyMocapToRig(
         select mocap skeleton as source
         select character as Character
     '''
-    mocapSkeletonMappings = loadMapping(sourceName, MappingTypes.sk)
-    rigSkeletonMappings = loadMapping(targetName, MappingTypes.sk)
-    rigControlsMappings = loadMapping(targetName, MappingTypes.cr)
+    mocapSkeletonMappings = loadMapping(mocapMapping, MappingTypes.sk)
+    rigSkeletonMappings = loadMapping(rigMapping, MappingTypes.sk)
+    rigControlsMappings = loadMapping(rigMapping, MappingTypes.cr)
 
-    pc.mel.HIKCharacterControlsTool()
-
-    # go to frame 0
     startFrame = 0
-    pc.playbackOptions(minTime=startFrame)
-    pc.currentTime(startFrame)
+    prepareHIK(startFrame)
 
-    # resolve rig namespace
-    if rigNamespace is None:
+    # resolve rig namespace or import
+    if rigPath:
+        rigNamespace = importRig(rigPath)
+    if rigNamespace is None or rigNamespace == '-1':
         rigNamespace = getNamespaceFromSelection()
 
     mocapNamespace = importMocap(mocapPath)
@@ -250,42 +397,31 @@ def applyMocapToRig(
 
     # check if mocap is successfully imported
     mocapRoot = mocapNamespace + getMappingRoot(mocapSkeletonMappings)
-    if not pc.objExists(mocapNamespace + mocapRoot):
+    if not pc.objExists(mocapRoot):
         pc.error("Could not find mocap Root node")
 
     # define HIK Skeleton
-    hikDefinitionName = createHikDefinition()
-    mapMocapSkeleton(mocapNamespace, hikDefinitionName, mocapSkeletonMappings)
-    pc.mel.hikToggleLockDefinition()
+    mocapDefinition = mapMocapSkeleton(mocapNamespace, mocapSkeletonMappings)
 
     # define HIK skeleton for rig
-    rigHikDefinitionName = createHikDefinition()
-    mapRigSkeleton(rigNamespace, rigHikDefinitionName, rigSkeletonMappings)
-    pc.mel.hikToggleLockDefinition()
+    rigDefinition = mapRigSkeleton(rigNamespace, rigSkeletonMappings)
 
     # define HIK custom_rig for rig
-    pc.mel.hikCreateCustomRig(rigHikDefinitionName)
-    mapRigControls(rigNamespace, rigControlsMappings)
-    pc.mel.hikUpdateCurrentSourceFromName(hikDefinitionName)
+    mapRigControls(rigNamespace, rigDefinition, rigControlsMappings)
+
+    # set mocap as source for this rig
+    linkMocapHikToRigHik(mocapDefinition, rigDefinition)
+
+    # select the controls
     pc.select(getRigControls(rigNamespace), rigControlsMappings)
 
-    animCurves = pc.listConnections(mocapRoot, d=0, s=1, scn=0)
-    frames = pc.keyframe(animCurves[0], q=1)
-    endFrame = frames[-1]
-    pc.playbackOptions(maxTime=endFrame)
+    setRange(mocapRoot)
 
     # To stop maya 2016 from hanging on bake call this in MEL instead
     if pc.about(v=True) >= 2018:
         # TODO: enable following code for maya 2018 and change the code in
         # launch.mel
 
-        pc.mel.eval((
-                'bakeResults -simulation true -t "%s:%s" -sampleBy 1'
-                '-disableImplicitControl true -preserveOutsideKeys true'
-                '-sparseAnimCurveBake false'
-                '-removeBakedAttributeFromLayer false'
-                '-removeBakedAnimFromLayer false -bakeOnOverrideLayer false'
-                '-minimizeRotation true -controlPoints false -shape true `ls'
-                '-sl`;') % (startFrame, endFrame))
+        bakeRig()
 
         cleanupHIK()
