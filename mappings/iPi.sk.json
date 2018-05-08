@@ -1,0 +1,23 @@
+{
+  "Hip"         : 1  ,
+  "LThigh"      : 2  ,
+  "LShin"       : 3  ,
+  "LFoot"       : 4  ,
+  "RThigh"      : 5  ,
+  "RShin"       : 6  ,
+  "RFoot"       : 7  ,
+  "LowerSpine"  : 8  ,
+  "LShoulder"   : 9  ,
+  "LForearm"    : 10 ,
+  "LHand"       : 11 ,
+  "RShoulder"   : 12 ,
+  "RForearm"    : 13 ,
+  "RHand"       : 14 ,
+  "Head"        : 15 ,
+  "LToe"        : 16 ,
+  "RToe"        : 17 ,
+  "LClavicle"   : 18 ,
+  "RClavicle"   : 19 ,
+  "Neck"        : 20 ,
+  "MiddleSpine" : 23
+}

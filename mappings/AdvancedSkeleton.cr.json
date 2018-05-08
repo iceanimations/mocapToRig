@@ -1,0 +1,21 @@
+{
+  "RootX_M"      : 1  ,
+  "FKHip_L"      : 2  ,
+  "FKKnee_L"     : 3  ,
+  "IKLeg_L"      : 4  ,
+  "FKHip_R"      : 5  ,
+  "FKKnee_R"     : 6  ,
+  "IKLeg_R"      : 7  ,
+  "FKSpine1_M"   : 8  ,
+  "FKShoulder_L" : 9  ,
+  "FKElbow_L"    : 10 ,
+  "FKWrist_L"    : 11 ,
+  "FKShoulder_R" : 12 ,
+  "FKElbow_R"    : 13 ,
+  "FKWrist_R"    : 14 ,
+  "FKHead_M"     : 15 ,
+  "FKScapula_L"  : 18 ,
+  "FKScapula_R"  : 19 ,
+  "FKNeck_M"     : 20 ,
+  "FKSpine2_M"   : 23
+}
