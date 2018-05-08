@@ -5,6 +5,7 @@ python("import mocapToRig as moctor\n"+
 TODO: write function(s) for checking mapping status for both rig and Mocap
 TODO: Disable appropriate controls on conditions
 TODO: Introduce Translation and Rotation Mapping for Controls
+TODO: Allow namespaces (from maya files from mocap)
 */
 
 //python("moctor.applyMocapToRig()\n\n");
@@ -384,6 +385,7 @@ global proc moctor_CheckRigStatus() {
 
 		// buttons
 		button -e -enable false moctor_MapRigBtn;
+		button -e -enable false moctor_SelectControlsBtn;
 		button -e -enable false moctor_CleanupRigHIKBtn;
 		button -e -enable false moctor_ImportRefBtn;
 		button -e -enable false moctor_MapBothBtn;
@@ -602,6 +604,7 @@ global proc moctor_Delete() {
 
 global proc moctor_EnableAll() {
 	button -e -enable true moctor_MapMocapBtn;
+	button -e -enable true moctor_SelectControlsBtn;
 	button -e -enable true moctor_CleanupMocapHIKBtn;
 	button -e -enable true moctor_DeleteMocapBtn;
 	button -e -enable true moctor_MapRigBtn;
