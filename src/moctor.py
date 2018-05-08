@@ -400,7 +400,7 @@ def importRigFromReference(rigPath, cleanup=True):
     refFile = getRefFileFromPath(rigPath)
     if refFile:
         namespace = refFile.namespace
-        pc.importReference(refFile)
+        refFile.importContents()
         if cleanup:
             pc.namespace(namespace, mnr=True)
             pc.delete(pc.ls(type='unknown'))
@@ -450,7 +450,6 @@ def apply(
         rigNamespace = getNamespaceFromSelection()
     if not rigNamespace.endswith(':'):
         rigNamespace += ':'
-
 
     mocapNamespace = importMocap(mocapPath)
     if mocapNamespace and not mocapNamespace.endswith(':'):

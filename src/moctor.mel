@@ -8,8 +8,6 @@ TODO: Introduce Translation and Rotation Mapping for Controls
 TODO: Allow namespaces (from maya files from mocap)
 */
 
-//python("moctor.applyMocapToRig()\n\n");
-
 global proc Mocap2RigUI() {
 	moctor_Close();
 
