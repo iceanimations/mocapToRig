@@ -9,6 +9,7 @@ TODO: Allow Mocap as Maya files with namespaces (and Controls)
 TODO: Read and Store Mapping From Scene
 TODO: Introduce Translation and Rotation Mapping for Controls
 TODO: Fix Mocap T-pose
+TODO: Auto kill delete Prompts
 */
 
 global proc Mocap2RigUI() {
