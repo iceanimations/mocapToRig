@@ -410,8 +410,7 @@ def importRigFromReference(rigPath, cleanup=True):
 #  Main Application Function  #
 ###############################
 
-
-def applyMocapToRig(
+def apply(
         mocapPath=None, rigNamespace=None,
         mocapMapping='iPi', rigMapping='AdvancedSkeleton', rigPath=None):
     '''
@@ -488,3 +487,61 @@ def applyMocapToRig(
         bakeRig()
 
         cleanupHIK(mocapRoot)
+
+
+def applyMocapToRig(mocapPath=None):
+    pc.mel.HIKCharacterControlsTool()
+    startFrame = 0
+    pc.playbackOptions(minTime=startFrame)
+    pc.currentTime(startFrame)
+    try:
+        control = pc.selected()[0]
+    except IndexError:
+        pc.warning('No selection found in the scene')
+        return
+    rigNamespace = control.namespace()
+    
+    # bring the mocap in
+    if not mocapPath:
+        dialog = cui.SingleInputBox(parent=qtfy.getMayaWindow(),
+                                    title='Mocap Skeleton Path', label='Path',
+                                    browseButton=True)
+        if dialog.exec_():
+            mocapPath = dialog.getValue().strip('"')
+        else: return
+    if not osp.exists(mocapPath):
+        pc.warning('Mocap Path does not exist')
+        return
+    
+    mocapNamespace = osp.splitext(osp.basename(mocapPath))[0]
+    pc.importFile(mocapPath, namespace=mocapNamespace)
+    mocapNamespace = ''
+    
+    # define HIK Skeleton
+    hikDefinitionName = createHikDefinition()
+    mapMocapSkeleton(mocapNamespace, hikDefinitionName)
+    pc.mel.hikToggleLockDefinition()
+    
+    rigHikDefinitionName = createHikDefinition()
+    mapRigSkeleton(rigNamespace, rigHikDefinitionName)
+    pc.mel.hikToggleLockDefinition()
+    
+    pc.mel.hikCreateCustomRig(rigHikDefinitionName)
+    mapRigControls(rigNamespace)
+    pc.mel.hikUpdateCurrentSourceFromName(hikDefinitionName)
+    pc.select(getRigControls(rigNamespace))
+
+#     TODO: enable following code for maya 2018 and change the code in
+#     launch.mel
+#     animCurves = pc.listConnections("Hip", d=0, s=1, scn=0)
+#     frames = pc.keyframe(animCurves[0], q=1)
+#     endFrame = frames[-1]
+#     pc.playbackOptions(maxTime=endFrame)
+#
+#     pc.mel.eval('bakeResults -simulation true -t "%s:%s" -sampleBy 1 -disableImplicitControl true -preserveOutsideKeys true -sparseAnimCurveBake false -removeBakedAttributeFromLayer false -removeBakedAnimFromLayer false -bakeOnOverrideLayer false -minimizeRotation true -controlPoints false -shape true `ls -sl`;'%(startFrame, endFrame))
+#
+#     pc.mel.hikDeleteCustomRig(pc.mel.hikGetCurrentCharacter())
+#     pc.mel.hikDeleteDefinition()
+#     pc.mel.hikSelectDefinitionTab()
+#     pc.mel.hikDeleteDefinition()
+#     pc.delete("Hip")
