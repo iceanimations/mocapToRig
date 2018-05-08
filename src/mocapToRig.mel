@@ -1,4 +1,4 @@
-python("import mocapToRig as moctor\n"+
+python("import mocapToRig.moctor as moctor\n"+
 		"reload(moctor)\n");
 
 /*
