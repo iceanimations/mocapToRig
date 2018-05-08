@@ -69,7 +69,9 @@ def checkMappingCount(mappingName, namespace='', typ=MappingTypes.sk):
 def checkMappingRoot(mappingName, namespace='', typ=MappingTypes.sk):
     mapping = loadMapping(mappingName, typ=typ)
     root = getMappingRoot(mapping)
-    return pc.objExists(namespace + root)
+    if pc.objExists(namespace + root):
+        return namespace+root
+    return ''
 
 
 def getMappingRoot(mapping):
@@ -113,6 +115,36 @@ def getHikDefFromCRRoot(namespace, crRoot):
         return ''
 
 
+def getHikDestinationSourceMapping():
+    destSourceMapping = {}
+    for node in pc.ls(type='HIKRetargeterNode'):
+        source = ''
+        try:
+            destination = node.InputCharacterDefinitionDst.inputs()[0]
+        except IndexError:
+            continue
+        try:
+            source = node.InputCharacterDefinitionSrc.inputs()[0]
+        except IndexError:
+            pass
+        destSourceMapping[str(destination)] = str(source)
+    return destSourceMapping
+
+
+def getHikSource(definition):
+    mapping = getHikDestinationSourceMapping()
+    return mapping.get(definition, '')
+
+
+def getHikDestinations(definition):
+    dests = []
+    mapping = getHikDestinationSourceMapping()
+    for dest, source in mapping.items():
+        if source == definition:
+            dests.append(source)
+    return dests
+
+
 def mapMocapSkeleton(namespace, mocapSkeletonMappings):
     prepareHIK()
     root = getMappingRoot(mocapSkeletonMappings)
@@ -147,7 +179,7 @@ def mapRigSkeleton(namespace, rigSkeletonMappings):
             pc.mel.setCharacterObject(
                     namespace + node, defname, num, 0)
         except RuntimeError as re:
-            print (str(e), namespace + node, 'not found')
+            print (str(re), namespace + node, 'not found')
     pc.mel.hikToggleLockDefinition()
     pc.select(selection)
     return defname
@@ -191,9 +223,9 @@ def getMocapHikDefinition(mappingName):
 
 
 def getRigHikDefinition(namespace, mappingName):
-    mapping = loadMapping(mappingName)
-    root = getMappingRoot(mapping, typ=MappingTypes.cr)
-    return getHikDefFromCRRoot(namespace, root)
+    mapping = loadMapping(mappingName, typ=MappingTypes.sk)
+    root = getMappingRoot(mapping)
+    return getHikDefFromSKRoot(namespace, root)
 
 
 #######################
@@ -202,6 +234,7 @@ def getRigHikDefinition(namespace, mappingName):
 
 
 def linkMocapHikToRigHik(mocapDefinition, rigDefinition):
+    prepareHIK()
     pc.mel.hikSetCurrentCharacter(rigDefinition)
     pc.mel.hikUpdateCurrentSourceFromName(mocapDefinition)
 
@@ -270,8 +303,8 @@ def importMocap(mocapPath, namespace=None):
 
     if namespace is None:
         namespace = osp.splitext(osp.basename(mocapPath))[0]
-    pc.importFile(mocapPath, namespace=namespace)
-    return '' if osp.splitext(mocapPath) == '.fbx' else namespace
+    pc.importFile(mocapPath)
+    return ''
 
 
 def importRig(rigPath):
@@ -287,6 +320,13 @@ def importRig(rigPath):
     if namespace == "-1":
         namespace = imaya.addRef(rigPath).namespace
     return namespace
+
+
+def deleteMocap(mapName):
+    mapping = loadMapping(mapName)
+    root = getMappingRoot(mapping)
+    print mapping, root
+    pc.delete(root)
 
 
 def cleanupHIK(mocapRoot):
@@ -308,13 +348,19 @@ def getNamespaceFromSelection():
     return rigNamespace
 
 
-def getNamespaceFromReferencePath(rigPath):
-    rigPath = osp.normcase(osp.normpath(rigPath))
+def getRefFileFromPath(path):
+    rigPath = osp.normcase(osp.normpath(path))
     for ref in pc.ls(type='reference'):
         refFile = ref.referenceFile()
-        refPath = osp.normpath(osp.normcase(ref.referenceFile().path))
+        refPath = osp.normpath(osp.normcase(refFile.path))
         if rigPath == refPath:
-            return refFile.namespace
+            return refFile
+
+
+def getNamespaceFromReferencePath(rigPath):
+    refFile = getRefFileFromPath(rigPath)
+    if refFile:
+        return refFile.namespace
     return '-1'
 
 
@@ -324,7 +370,7 @@ def getReferencePathFromNamespace(namespace):
         refFile = ref.referenceFile()
         if refFile.namespace == namespace:
             return ref.referenceFile().path
-    return '-1'
+    return ''
 
 
 def prepareHIK(startFrame=0):
@@ -341,10 +387,23 @@ def setRange(mocapRoot):
 def getAnimRange(mocapRoot):
     animCurves = pc.listConnections(
             mocapRoot, d=0, s=1, scn=0, type='animCurve')
+    if not animCurves:
+        return (pc.playbackOptions(q=True, minTime=True),
+                pc.playbackOptions(q=True, maxTime=True))
     frames = pc.keyframe(animCurves[0], q=1)
     startFrame = frames[0]
     endFrame = frames[-1]
     return startFrame, endFrame
+
+
+def importRigFromReference(rigPath, cleanup=True):
+    refFile = getRefFileFromPath(rigPath)
+    if refFile:
+        namespace = refFile.namespace
+        pc.importReference(refFile)
+        if cleanup:
+            pc.namespace(namespace, mnr=True)
+            pc.delete(pc.ls(type='unknown'))
 
 
 ###############################
@@ -390,6 +449,9 @@ def applyMocapToRig(
         rigNamespace = importRig(rigPath)
     if rigNamespace is None or rigNamespace == '-1':
         rigNamespace = getNamespaceFromSelection()
+    if not rigNamespace.endswith(':'):
+        rigNamespace += ':'
+
 
     mocapNamespace = importMocap(mocapPath)
     if mocapNamespace and not mocapNamespace.endswith(':'):
@@ -400,6 +462,7 @@ def applyMocapToRig(
     if not pc.objExists(mocapRoot):
         pc.error("Could not find mocap Root node")
 
+    setRange(mocapRoot)
     # define HIK Skeleton
     mocapDefinition = mapMocapSkeleton(mocapNamespace, mocapSkeletonMappings)
 
@@ -424,4 +487,4 @@ def applyMocapToRig(
 
         bakeRig()
 
-        cleanupHIK()
+        cleanupHIK(mocapRoot)

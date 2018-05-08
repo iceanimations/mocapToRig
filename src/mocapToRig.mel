@@ -1,6 +1,12 @@
 python("import mocapToRig as moctor\n"+
 		"reload(moctor)\n");
 
+/*
+TODO: write function(s) for checking mapping status for both rig and Mocap
+TODO: Disable appropriate controls on conditions
+TODO: Introduce Translation and Rotation Mapping for Controls
+*/
+
 //python("moctor.applyMocapToRig()\n\n");
 
 global proc Mocap2RigUI() {
@@ -29,7 +35,7 @@ global proc Mocap2RigUI() {
 						-columnAttach3 left left left
 						-columnAlign3 left left right
 						-columnWidth3 50 130 50
-						-changeCommand "moctor_CheckMocapStatus()"
+						-changeCommand "moctor_UpdateUI()"
 						moctor_MocapOMG;
 					menuItem -label "iPi";
 					textFieldButtonGrp
@@ -55,7 +61,7 @@ global proc Mocap2RigUI() {
 						-columnAttach3 left left left
 						-columnAlign3 left left right
 						-columnWidth3 50 130 50
-						-changeCommand "moctor_CheckRigStatus()"
+						-changeCommand "moctor_UpdateUI()"
 						moctor_RigOMG;
 					menuItem -label "AdvancedSkeleton";
 					textFieldButtonGrp
@@ -79,7 +85,7 @@ global proc Mocap2RigUI() {
 					menuItem -l "From Reference";
 					menuItem -l "From Selection";
 					textField
-						-changeCommand "moctor_CheckRigStatus()"
+						-changeCommand "moctor_UpdateUI()"
 						moctor_RigNamespaceField;
 					setParent ..;
 					setParent ..; // exit columnLayout;
@@ -132,7 +138,7 @@ global proc Mocap2RigUI() {
 			setParent ..; // Back to main ColumnLayout
 
 			rowLayout -nc 3 -adjustableColumn true; // for button box
-				button -label "Apply" -command "moctor_Do()" moctor_ApplyBtn;
+				button -label "Apply" -command "moctor_Apply()" moctor_ApplyBtn;
 				button -label "Close" -command "moctor_Close()" moctor_CloseBtn;
 				setParent ..; // back to rowLayout for button box
 		setParent ..;
@@ -141,12 +147,12 @@ global proc Mocap2RigUI() {
 
 	optionMenuGrp -e -select 3 moctor_RigNamspaceOMG;
 	moctor_SetRigNamespace();
-	moctor_CheckMocapStatus();
-	moctor_CheckRigStatus();
+	moctor_UpdateUI();
 }
 
 global proc moctor_NewScene() {
 	file -new -f;
+	moctor_UpdateUI();
 }
 
 global proc moctor_Close() {
@@ -156,20 +162,64 @@ global proc moctor_Close() {
 }
 
 global proc moctor_Do() {
-	//python("moctor.applyMocapToRig()\n\n");
-	print "Doing Stuff\n";
+	string $mocapMapping = `optionMenuGrp -q -v moctor_MocapOMG`;
+	string $mocapPath = `textFieldButtonGrp -q -text moctor_MocapFile`;
+	string $rigMapping = `optionMenuGrp -q -v moctor_RigOMG`;
+	string $rigPath = `textFieldButtonGrp -q -text moctor_RigFile`;
+	string $cmd = `format
+			-s $mocapPath -s $mocapMapping
+			-s $rigMapping -s $rigPath
+			("moctor.applyMocapToRig(mocapPath='^1s', mocapMapping='^2s', "
+			  +"rigMapping='^3s', rigPath='^4s')")`;
+	if ($rigPath == "") {
+		string $rigNamespace = getRigNamespace();
+		string $cmd = `format
+				-s $mocapPath -s $mocapMapping
+				-s $rigMapping -s $rigNamespace
+				("moctor.applyMocapToRig(mocapPath='^1s', mocapMapping='^2s', "
+				 +"rigMapping='^3s', rigNamespace='^4s')")`;
+	}
+	python($cmd);
+	moctor_UpdateUI();
 }
 
-global proc moctor_CheckMocapStatus() {
+global proc moctor_Apply() {
+	moctor_ImportBoth();
+	moctor_MapBoth();
+	moctor_BakeRig();
+	moctor_CleanupBothHIK();
+	moctor_DeleteMocap();
+	moctor_UpdateUI();
+}
+
+proc storeMocapPath(string $root, string $path) {
+	if ($root != "") {
+		if (!`attributeQuery -exists -node $root "mocapPath"`) {
+			addAttr -ln "mocapPath" -dt "string" $root;
+		}
+		setAttr -type "string" ($root + ".mocapPath") $path;
+	}
+}
+
+proc string retrieveMocapPath(string $root) {
+	$path = "";
+	if (`attributeQuery -node $root -exists -ln "mocapPath"`) {
+		$path = `getAttr ($root + ".mocapPath")`;
+	}
+	return $path;
+}
+
+global proc string moctor_CheckMocapStatus() {
 	string $mapping = `optionMenuGrp -q -v moctor_MocapOMG`;
-	int $rootExists = python(
+	string $root = python(
 			`format -s $mapping "moctor.checkMappingRoot('^1s')"`);
 	float $color[] = {
 			1, 0, 0 };
-	if ($rootExists) {
+	string $str = "OK: ";
+	if ($root != "") {
 		int $matches[] = python(
 				`format -s $mapping "moctor.checkMappingCount('^1s')"`);
-		string $str = `format
+		$str += `format
 				-s ((string)($matches[0])) -s ((string)($matches[1]))
 				"^1s of ^2s found"`;
 		$color = {
@@ -179,21 +229,35 @@ global proc moctor_CheckMocapStatus() {
 					1, 1, 1};
 		text -e -l $str -bgc $color[0] $color[1] $color[2]
 				moctor_MocapStatusLabel;
+		string $path = retrieveMocapPath($root);
+		if ($path != "") {
+			textFieldButtonGrp -e -text $path moctor_MocapFile;
+		}
+		return $root;
 	}
 	else {
-		text -e -l "Mocap Root Not Found!" -bgc $color[0] $color[1] $color[2]
+		$str = "Invalid: ";
+		$str += "Mocap Root Not Found!";
+		text -e -l $str -bgc $color[0] $color[1] $color[2]
 				moctor_MocapStatusLabel;
+		button -e -enable false moctor_MapMocapBtn;
+		button -e -enable false moctor_CleanupMocapHIKBtn;
+		button -e -enable false moctor_DeleteMocapBtn;
+		button -e -enable false moctor_MapBothBtn;
+		button -e -enable false moctor_CleanupBothHIKBtn;
+		button -e -enable false moctor_DeleteBtn;
+		button -e -enable false moctor_BakeRigBtn;
 	}
+	return "";
 }
 
 global proc moctor_ImportMocap() {
 	string $fbx = `textFieldButtonGrp -q -text moctor_MocapFile`;
-	if ($fbx == "") {
-		confirmDialog -icn "critical" -m "No FBX Specified";
-		error("No FBX Specified");
-	}
 	python(`format -s $fbx "moctor.importMocap(r'^1s')"`);
-	moctor_CheckMocapStatus();
+	moctor_UpdateUI();
+	string $root = moctor_CheckMocapStatus();
+	if ($root != "") storeMocapPath($root, $fbx);
+	else error("Mocap Root Not Found");
 }
 
 proc string getRigNamespace() {
@@ -210,7 +274,7 @@ proc setRigNamespace(string $namespace) {
 	}
 	string $namespace = `textField -e
 			-text $namespace moctor_RigNamespaceField`;
-	moctor_CheckRigStatus();
+	moctor_UpdateUI();
 }
 
 global proc string moctor_SetRigNamespace() {
@@ -245,7 +309,11 @@ global proc moctor_ImportRig() {
 	if ($namespace != "-1") {
 		setRigNamespace($namespace);
 	}
-	moctor_CheckRigStatus();
+	$status = `text -q -l moctor_RigStatusLabel`;
+	if (`startsWith $status "Invalid"`) {
+		error("One or more Rig Roots not found");
+	}
+	moctor_UpdateUI();
 }
 
 global proc string[] moctor_BrowseMocap() {
@@ -263,32 +331,36 @@ global proc moctor_CheckRigStatus() {
 
 	$path = python(`format -s $namespace
 			"moctor.getReferencePathFromNamespace('^1s')"`);
-	if ($path != -1) {
+	if ($path != "") {
 		textFieldButtonGrp -e -text $path moctor_RigFile;
 	}
 
 	string $mapping_sk = `optionMenuGrp -q -v moctor_RigOMG`;
 	string $mapping_cr = `optionMenuGrp -q -v moctor_RigOMG`;
-	int $rootExists_sk = python(
+	string $root_sk = python(
 			`format -s $mapping_sk -s $namespace
 					"moctor.checkMappingRoot('^1s', '^2s')"`);
-	int $rootExists_cr = python(
+	string $root_cr = python(
 			`format -s $mapping_cr -s $namespace
 					"moctor.checkMappingRoot('^1s', '^2s', 'cr')"`);
 	float $color[] = {
 			1, 0, 0};
-	if ($rootExists_sk && $rootExists_cr) {
+
+	string $str = "OK: ";
+
+
+	if ($root_sk != "" && $root_cr != "") {
 		int $matches_sk[] = python(
 				`format -s $mapping_sk -s $namespace
 						"moctor.checkMappingCount('^1s', '^2s')"`);
 		int $matches_cr[] = python(
 				`format -s $mapping_cr -s $namespace
 						"moctor.checkMappingCount('^1s', '^2s', 'cr')"`);
-		string $str = `format
+		$str += `format
 				-s ((string)($matches_sk[0])) -s ((string)($matches_sk[1]))
-				"Skeleton: ^1s of ^2s"`;
+				"^1s of ^2s (Skeleton)"`;
 		$str += `format -s ((string)($matches_cr[0]))
-				-s ((string)($matches_cr[1])) ", Control Rig: ^1s of ^2s"`;
+				-s ((string)($matches_cr[1])) ", ^1s of ^2s (Rig)"`;
 		$color = {
 				1, 1, 0};
 		if ( ($matches_sk[0] == $matches_sk[1]) &&
@@ -299,15 +371,25 @@ global proc moctor_CheckRigStatus() {
 				moctor_RigStatusLabel;
 	}
 	else {
+		$str = "Invalid:";
 		$text = "Root(s) not found:";
-		if (!$rootExists_sk) {
+		if ($root_sk == "") {
 			$text += " Skeleton";
 		}
-		if (!$rootExists_cr) {
+		if ($root_cr == "") {
 			$text += " Controls";
 		}
 		text -e -l $text -bgc $color[0] $color[1] $color[2]
 				moctor_RigStatusLabel;
+
+		// buttons
+		button -e -enable false moctor_MapRigBtn;
+		button -e -enable false moctor_CleanupRigHIKBtn;
+		button -e -enable false moctor_ImportRefBtn;
+		button -e -enable false moctor_MapBothBtn;
+		button -e -enable false moctor_CleanupBothHIKBtn;
+		button -e -enable false moctor_DeleteBtn;
+		button -e -enable false moctor_BakeRigBtn;
 	}
 }
 
@@ -330,23 +412,53 @@ global proc moctor_ImportBoth() {
 }
 
 proc string getMocapDefinition() {
-	$mapping = `optionMenuGrp -q -v moctor_MocapMappingStatus`;
+	$mapping = `optionMenuGrp -q -v moctor_MocapOMG`;
 	$mocapDef = python(`format -s $mapping "moctor.getMocapHikDefinition('^1s')"`);
+	if ($mocapDef == "") {
+		button -e -enable false moctor_CleanupMocapHIKBtn;
+		button -e -enable false moctor_CleanupBothHIKBtn;
+		button -e -enable false moctor_BakeRigBtn;
+	}
 	text -e -l $mocapDef moctor_MocapMappingStatus;
 	return $mocapDef;
 }
 
 proc string getRigDefinition() {
-	$rigDef = `optionMenuGrp -q -v moctor_RigMappingStatus`;
+	$rigMappingName = `optionMenuGrp -q -v moctor_RigOMG`;
 	$namespace = `textField -q -text moctor_RigNamespaceField`;
-	if ($rigDef=="") {
-		$rigDef = python(`format -s $namespace -s $rigDef
-				"moctor.getMocapHikDefinition(^1s)"`);
-	}
+	$rigDef = python(`format -s $namespace -s $rigMappingName
+			"moctor.getRigHikDefinition('^1s', '^2s')"`);
 	if ($rigDef == "") {
-		error("No Mocap Definition Found");
+		text -e -l "" moctor_RigMappingStatus;
+		button -e -enable false moctor_CleanupRigHIKBtn;
+		button -e -enable false moctor_CleanupBothHIKBtn;
+		button -e -enable false moctor_BakeRigBtn;
 	}
 	return $rigDef;
+}
+
+proc string getRigSourceDefinition(string $rigDef) {
+	return python(`format -s $rigDef "moctor.getHikSource('^1s')"`);
+}
+
+proc string setRigMappingStatus(string $rigDef, string $rigSourceDef) {
+	string $defs[] = {$rigDef, $rigSourceDef};
+	string $status = stringArrayToString($defs, ":");
+	text -e -l $status moctor_RigMappingStatus;
+	return $status;
+}
+
+proc string getRigMappingStatus() {
+	string $rigDef = getRigDefinition();
+	if ($rigDef != "") {
+		string $mocapDef = getMocapDefinition();
+		string $sourceDef = getRigSourceDefinition($rigDef);
+		if ($mocapDef != $sourceDef) {
+			button -e -enable false moctor_BakeRigBtn;
+		}
+		return setRigMappingStatus($rigDef, $sourceDef);
+	}
+	return "";
 }
 
 global proc string[] setMocapHikAsRigHikSource() {
@@ -369,9 +481,7 @@ global proc string[] setMocapHikAsRigHikSource() {
 	}
 	python(`format -s $mocapDef -s $rigDef
 			"moctor.linkMocapHikToRigHik('^1s', '^2s')"`);
-	$defs = {$mocapDef, $rigDef};
-	$status = stringArrayToString($defs, ":");
-	text -e -l $status moctor_RigMappingStatus;
+	setRigMappingStatus($rigDef, $mocapDef);
 	return $defs;
 }
 
@@ -381,6 +491,7 @@ global proc string moctor_MapMocap() {
 			-s $mapName "moctor.mapMocap('^1s')"`);
 	text -e -l $defname moctor_MocapMappingStatus;
 	catch(`setMocapHikAsRigHikSource`);
+	moctor_UpdateUI();
 	return $defname;
 }
 
@@ -392,6 +503,7 @@ global proc string moctor_MapRig() {
 	text -e -l $defname moctor_RigMappingStatus;
 	global string $moctor_defnames[];
 	catch($moctor_defnames = setMocapHikAsRigHikSource());
+	moctor_UpdateUI();
 	return $defname;
 }
 
@@ -427,6 +539,7 @@ global proc moctor_BakeRig() {
 	$sf = $frames[0];
 	string $range = $sf + ":" + $ef;
 	playbackOptions -minTime $sf -maxTime $ef;
+	moctor_SelectControls();
 	bakeResults -simulation true -t $range -sampleBy 1 -disableImplicitControl true
 			-preserveOutsideKeys true -sparseAnimCurveBake false
 			-removeBakedAttributeFromLayer false -removeBakedAnimFromLayer false
@@ -442,7 +555,9 @@ global proc moctor_CleanupMocapHIK() {
 		hikUpdateCharacterList();
 		hikSelectDefinitionTab();
 		hikDeleteDefinition();
+		hikUpdateCharacterList();
 	}
+	moctor_UpdateUI();
 }
 
 global proc moctor_CleanupRigHIK() {
@@ -450,16 +565,60 @@ global proc moctor_CleanupRigHIK() {
 	if ($rd != "") {
 		HIKCharacterControlsTool();
 		hikSetCurrentCharacter($rd);
+		hikSelectCustomRigTab();
 		hikDeleteCustomRig($rd);
 		hikUpdateCharacterList();
 		hikSelectDefinitionTab();
 		hikDeleteDefinition();
+		hikUpdateCharacterList();
 	}
+	moctor_UpdateUI();
 }
 
 global proc moctor_CleanupBothHIK() {
-	moctor_CleanupRigHIK();
 	moctor_CleanupMocapHIK();
+	moctor_CleanupRigHIK();
+}
+
+global proc moctor_DeleteMocap() {
+	$mocapMapping = `optionMenuGrp -q -v moctor_MocapOMG`;
+	python(`format -s $mocapMapping "moctor.deleteMocap('^1s')"`);
+	moctor_UpdateUI();
+}
+
+global proc moctor_ImportRef() {
+	$rigPath = `textFieldButtonGrp -q -text moctor_RigFile`;
+	python(`format -s $rigPath
+			"moctor.importRigFromReference(r'^1s')"`);
+	textFieldButtonGrp -e -text "" moctor_RigFile;
+	textField -e -text "" moctor_RigNamespaceField;
+	moctor_UpdateUI();
+}
+
+global proc moctor_Delete() {
+	moctor_ImportRef();
+	moctor_DeleteMocap();
+}
+
+global proc moctor_EnableAll() {
+	button -e -enable true moctor_MapMocapBtn;
+	button -e -enable true moctor_CleanupMocapHIKBtn;
+	button -e -enable true moctor_DeleteMocapBtn;
+	button -e -enable true moctor_MapRigBtn;
+	button -e -enable true moctor_CleanupRigHIKBtn;
+	button -e -enable true moctor_ImportRefBtn;
+	button -e -enable true moctor_MapBothBtn;
+	button -e -enable true moctor_CleanupBothHIKBtn;
+	button -e -enable true moctor_DeleteBtn;
+	button -e -enable true moctor_BakeRigBtn;
+}
+
+global proc moctor_UpdateUI() {
+	moctor_EnableAll();
+	moctor_CheckMocapStatus();
+	moctor_CheckRigStatus();
+	getMocapDefinition();
+	getRigMappingStatus();
 }
 
 Mocap2RigUI();
