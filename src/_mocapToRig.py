@@ -500,7 +500,7 @@ def applyMocapToRig(mocapPath=None):
         pc.warning('No selection found in the scene')
         return
     rigNamespace = control.namespace()
-    
+
     # bring the mocap in
     if not mocapPath:
         dialog = cui.SingleInputBox(parent=qtfy.getMayaWindow(),
@@ -508,24 +508,25 @@ def applyMocapToRig(mocapPath=None):
                                     browseButton=True)
         if dialog.exec_():
             mocapPath = dialog.getValue().strip('"')
-        else: return
+        else:
+            return
     if not osp.exists(mocapPath):
         pc.warning('Mocap Path does not exist')
         return
-    
+
     mocapNamespace = osp.splitext(osp.basename(mocapPath))[0]
     pc.importFile(mocapPath, namespace=mocapNamespace)
     mocapNamespace = ''
-    
+
     # define HIK Skeleton
     hikDefinitionName = createHikDefinition()
     mapMocapSkeleton(mocapNamespace, hikDefinitionName)
     pc.mel.hikToggleLockDefinition()
-    
+
     rigHikDefinitionName = createHikDefinition()
     mapRigSkeleton(rigNamespace, rigHikDefinitionName)
     pc.mel.hikToggleLockDefinition()
-    
+
     pc.mel.hikCreateCustomRig(rigHikDefinitionName)
     mapRigControls(rigNamespace)
     pc.mel.hikUpdateCurrentSourceFromName(hikDefinitionName)
@@ -538,7 +539,12 @@ def applyMocapToRig(mocapPath=None):
 #     endFrame = frames[-1]
 #     pc.playbackOptions(maxTime=endFrame)
 #
-#     pc.mel.eval('bakeResults -simulation true -t "%s:%s" -sampleBy 1 -disableImplicitControl true -preserveOutsideKeys true -sparseAnimCurveBake false -removeBakedAttributeFromLayer false -removeBakedAnimFromLayer false -bakeOnOverrideLayer false -minimizeRotation true -controlPoints false -shape true `ls -sl`;'%(startFrame, endFrame))
+#     pc.mel.eval(('bakeResults -simulation true -t "%s:%s" -sampleBy 1'
+#     ' -disableImplicitControl true -preserveOutsideKeys true'
+#     ' -sparseAnimCurveBake false -removeBakedAttributeFromLayer false'
+#     ' -removeBakedAnimFromLayer false -bakeOnOverrideLayer false'
+#     ' -minimizeRotation true -controlPoints false -shape true `ls'
+#     ' -sl`;')%(startFrame, endFrame))
 #
 #     pc.mel.hikDeleteCustomRig(pc.mel.hikGetCurrentCharacter())
 #     pc.mel.hikDeleteDefinition()
