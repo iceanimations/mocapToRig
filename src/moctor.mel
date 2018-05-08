@@ -1,4 +1,5 @@
-python("import mocapToRig.moctor as moctor\n"+
+python("import mocapToRig\n"+
+		"moctor = mocapToRig.moctor\n"+
 		"reload(moctor)\n");
 
 /*
@@ -590,14 +591,13 @@ global proc moctor_ImportRef() {
 	$rigPath = `textFieldButtonGrp -q -text moctor_RigFile`;
 	python(`format -s $rigPath
 			"moctor.importRigFromReference(r'^1s')"`);
-	textFieldButtonGrp -e -text "" moctor_RigFile;
 	textField -e -text "" moctor_RigNamespaceField;
 	moctor_UpdateUI();
 }
 
 global proc moctor_Delete() {
-	moctor_ImportRef();
 	moctor_DeleteMocap();
+	moctor_ImportRef();
 }
 
 global proc moctor_EnableAll() {

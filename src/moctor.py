@@ -402,7 +402,7 @@ def importRigFromReference(rigPath, cleanup=True):
         namespace = refFile.namespace
         refFile.importContents()
         if cleanup:
-            pc.namespace(namespace, mnr=True)
+            pc.namespace(removeNamespace=namespace, mnr=True)
             pc.delete(pc.ls(type='unknown'))
 
 
