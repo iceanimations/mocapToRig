@@ -3,10 +3,12 @@ python("import mocapToRig\n"+
 		"reload(moctor)\n");
 
 /*
-TODO: write function(s) for checking mapping status for both rig and Mocap
-TODO: Disable appropriate controls on conditions
+TODO: Clean All keys when applying Mapping to Rig
+TODO: Fix Rig T-Pose
+TODO: Read and Store Mapping From Scene
 TODO: Introduce Translation and Rotation Mapping for Controls
-TODO: Allow namespaces (from maya files from mocap)
+TODO: Allow Mocap as Maya files with namespaces (and Controls)
+TODO: Fix Mocap T-pose
 */
 
 global proc Mocap2RigUI() {
@@ -137,7 +139,9 @@ global proc Mocap2RigUI() {
 				setParent ..; // Exit mainRC
 			setParent ..; // Back to main ColumnLayout
 
-			rowLayout -nc 3 -adjustableColumn true; // for button box
+			rowLayout -nc 3 -ad3 2; // for button box
+				button -label "Refresh" -command "moctor_UpdateUI()"
+						moctor_RefreshBtn;
 				button -label "Apply" -command "moctor_Apply()" moctor_ApplyBtn;
 				button -label "Close" -command "moctor_Close()" moctor_CloseBtn;
 				setParent ..; // back to rowLayout for button box
@@ -372,14 +376,13 @@ global proc moctor_CheckRigStatus() {
 	}
 	else {
 		$str = "Invalid:";
-		$text = "Root(s) not found:";
 		if ($root_sk == "") {
-			$text += " Skeleton";
+			$str += " Skeleton";
 		}
 		if ($root_cr == "") {
-			$text += " Controls";
+			$str += " Controls";
 		}
-		text -e -l $text -bgc $color[0] $color[1] $color[2]
+		text -e -l $str -bgc $color[0] $color[1] $color[2]
 				moctor_RigStatusLabel;
 
 		// buttons
