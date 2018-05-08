@@ -3,11 +3,12 @@ python("import mocapToRig\n"+
 		"reload(moctor)\n");
 
 /*
+TODO: Add Chest control to mapping
 TODO: Clean All keys when applying Mapping to Rig
 TODO: Fix Rig T-Pose
+TODO: Allow Mocap as Maya files with namespaces (and Controls)
 TODO: Read and Store Mapping From Scene
 TODO: Introduce Translation and Rotation Mapping for Controls
-TODO: Allow Mocap as Maya files with namespaces (and Controls)
 TODO: Fix Mocap T-pose
 */
 

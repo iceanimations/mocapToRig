@@ -17,5 +17,6 @@
   "FKScapula_L"  : 18 ,
   "FKScapula_R"  : 19 ,
   "FKNeck_M"     : 20 ,
-  "FKSpine2_M"   : 23
+  "FKSpine2_M"   : 23 ,
+  "FKChest_M"    : 1000
 }
