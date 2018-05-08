@@ -3,7 +3,6 @@ python("import mocapToRig\n"+
 		"reload(moctor)\n");
 
 /*
-TODO: Add Chest control to mapping
 TODO: Clean All keys when applying Mapping to Rig
 TODO: Fix Rig T-Pose
 TODO: Allow Mocap as Maya files with namespaces (and Controls)
@@ -500,6 +499,14 @@ global proc string moctor_MapMocap() {
 	return $defname;
 }
 
+global proc hideRigSkeleton() {
+	string $mapName = `optionMenuGrp -q -v moctor_RigOMG`;
+	string $namespace = getRigNamespace();
+	python(`format -s $namespace -s $mapName
+			"moctor.hideSkeleton('^1s', moctor.loadMapping('^2s'))"`);
+}
+
+
 global proc string moctor_MapRig() {
 	string $mapName = `optionMenuGrp -q -v moctor_RigOMG`;
 	string $namespace = getRigNamespace();
@@ -508,6 +515,7 @@ global proc string moctor_MapRig() {
 	text -e -l $defname moctor_RigMappingStatus;
 	global string $moctor_defnames[];
 	catch($moctor_defnames = setMocapHikAsRigHikSource());
+	hideRigSkeleton();
 	moctor_UpdateUI();
 	return $defname;
 }
@@ -520,6 +528,7 @@ global proc string[] moctor_MapBoth() {
 }
 
 global proc moctor_SelectControls() {
+	hideRigSkeleton();
 	$mappingName = `optionMenuGrp -q -v moctor_RigOMG`;
 	$namespace = `textField -q -text moctor_RigNamespaceField`;
 	$getMappingCmd = python(`format -s $mappingName

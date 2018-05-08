@@ -147,6 +147,7 @@ def getHikDestinations(definition):
 
 def mapMocapSkeleton(namespace, mocapSkeletonMappings):
     prepareHIK()
+    selection = pc.selected()
     root = getMappingRoot(mocapSkeletonMappings)
     setRange(namespace + root)
     defname = getHikDefFromSKRoot(namespace, root)
@@ -158,9 +159,11 @@ def mapMocapSkeleton(namespace, mocapSkeletonMappings):
     for node, num in mocapSkeletonMappings.items():
         try:
             pc.mel.setCharacterObject(namespace + node, defname, num, 0)
-        except RuntimeError:
-            pass
+            pc.PyNode(namespace + node).drawStyle.set(2)
+        except (pc.MayaNodeError, RuntimeError) as re:
+            print (str(re), namespace + node, 'not found')
     pc.mel.hikToggleLockDefinition()
+    pc.select(selection)
     return defname
 
 
@@ -178,11 +181,20 @@ def mapRigSkeleton(namespace, rigSkeletonMappings):
         try:
             pc.mel.setCharacterObject(
                     namespace + node, defname, num, 0)
-        except RuntimeError as re:
+            pc.PyNode(namespace + node).drawStyle.set(2)
+        except (pc.MayaNodeError, RuntimeError) as re:
             print (str(re), namespace + node, 'not found')
     pc.mel.hikToggleLockDefinition()
     pc.select(selection)
     return defname
+
+
+def hideSkeleton(namespace, mapping):
+    for node in mapping:
+        try:
+            pc.PyNode(namespace + node).drawStyle.set(2)
+        except:
+            pass
 
 
 def mapRigControls(namespace, defname, rigControlsMappings):
@@ -205,14 +217,16 @@ def mapRigControls(namespace, defname, rigControlsMappings):
 
 
 def mapMocap(mappingName):
-    return mapMocapSkeleton('', loadMapping(mappingName))
+    mapping = loadMapping(mappingName)
+    defname = mapMocapSkeleton('', mapping)
+    return defname
 
 
 def mapRig(namespace, mappingName):
-    mapping = loadMapping(mappingName, typ=MappingTypes.Skeleton)
-    defname = mapRigSkeleton(namespace, mapping)
-    mapping = loadMapping(mappingName, typ=MappingTypes.ControlRig)
-    mapRigControls(namespace, defname, mapping)
+    sk_mapping = loadMapping(mappingName, typ=MappingTypes.Skeleton)
+    defname = mapRigSkeleton(namespace, sk_mapping)
+    cr_mapping = loadMapping(mappingName, typ=MappingTypes.ControlRig)
+    mapRigControls(namespace, defname, cr_mapping)
     return defname
 
 
