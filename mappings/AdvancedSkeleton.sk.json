@@ -19,5 +19,6 @@
   "Scapula_L"  : 18 ,
   "Scapula_R"  : 19 ,
   "Neck_M"     : 20 ,
-  "Spine2_M"   : 23
+  "Spine2_M"   : 23 ,
+  "Chest_M"    : 24
 }

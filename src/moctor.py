@@ -13,7 +13,6 @@ import qtify_maya_window as qtfy
 import json
 import glob
 import imaya
-import traceback
 
 
 MEL_PROC_FILE = osp.join(
@@ -88,7 +87,7 @@ def getHikDefFromSKRoot(namespace, skRoot):
         if characterNode:
             return characterNode[0].name()
     except (AttributeError, IndexError, pc.MayaNodeError):
-        pc.warning ("No Character Found")
+        pass
     return ''
 
 
@@ -108,10 +107,7 @@ def getHikDefFromCRRoot(namespace, crRoot):
         else:
             ''
 
-    except IndexError as ie:
-        print str(ie)
-        traceback.print_exc()
-        pc.warning('Cannot find connection to definition from mapping')
+    except IndexError:
         return ''
 
 
@@ -210,6 +206,11 @@ def mapRigControls(namespace, defname, rigControlsMappings):
         try:
             pc.select(namespace + node)
             pc.mel.hikCustomRigAssignEffector(num)
+            pc.mel.hikCustomRigAddRemoveMapping("R", 1)
+            if 'FK' in node:
+                pc.mel.hikCustomRigAddRemoveMapping("T", 0)
+            else:
+                pc.mel.hikCustomRigAddRemoveMapping("T", 1)
         except RuntimeError:
             pass
 
@@ -322,6 +323,7 @@ def importMocap(mocapPath, namespace=None):
 
 
 def importRig(rigPath):
+    namespace = '-1'
     if not rigPath:
         dialog = cui.SingleInputBox(
                 parent=qtfy.getMayaWindow(), title='Rig Path',
@@ -329,10 +331,14 @@ def importRig(rigPath):
         if dialog.exec_():
             rigPath = dialog.getValue().strip('"')
         else:
-            return "-1"
-    namespace = getNamespaceFromReferencePath(rigPath)
-    if namespace == "-1":
+            return namespace
+    refFile = getRefFileFromPath(rigPath)
+    if not refFile:
         namespace = imaya.addRef(rigPath).namespace
+    else:
+        namespace = refFile.namespace
+        refFile.load()
+
     return namespace
 
 

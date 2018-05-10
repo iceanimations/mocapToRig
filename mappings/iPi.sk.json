@@ -19,5 +19,6 @@
   "LClavicle"   : 18 ,
   "RClavicle"   : 19 ,
   "Neck"        : 20 ,
-  "MiddleSpine" : 23
+  "MiddleSpine" : 23 ,
+  "Chest"       : 24
 }

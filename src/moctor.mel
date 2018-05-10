@@ -3,11 +3,11 @@ python("import mocapToRig\n"+
 		"reload(moctor)\n");
 
 /*
-TODO: Clean All keys when applying Mapping to Rig
+TODO: Introduce Translation and Rotation Mapping for Controls
 TODO: Fix Rig T-Pose
+TODO: Clean All keys before applying Mapping to Rig, Zero Out later
 TODO: Allow Mocap as Maya files with namespaces (and Controls)
 TODO: Read and Store Mapping From Scene
-TODO: Introduce Translation and Rotation Mapping for Controls
 TODO: Fix Mocap T-pose
 TODO: Auto kill delete Prompts
 */
@@ -92,9 +92,14 @@ global proc Mocap2RigUI() {
 						moctor_RigNamespaceField;
 					setParent ..;
 					setParent ..; // exit columnLayout;
-					button -l "Select Rig Controls"
-						-c "moctor_SelectControls()"
-						moctor_SelectControlsBtn;
+					rowLayout -nc 2 -adj true -cw2 115 115 -width 20;
+						button -l "Select Rig Controls"
+							-c "moctor_SelectControls()"
+							moctor_SelectControlsBtn;
+						button -l "Hide Rig Skeleton"
+							-c "moctor_HideRigSkeleton()"
+							moctor_HideRigSkeletonBtn;
+						setParent ..;
 					setParent ..; // Exiting frameLayout
 
 				}
@@ -388,6 +393,7 @@ global proc moctor_CheckRigStatus() {
 
 		// buttons
 		button -e -enable false moctor_MapRigBtn;
+		button -e -enable false moctor_HideRigSkeletonBtn;
 		button -e -enable false moctor_SelectControlsBtn;
 		button -e -enable false moctor_CleanupRigHIKBtn;
 		button -e -enable false moctor_ImportRefBtn;
@@ -500,13 +506,12 @@ global proc string moctor_MapMocap() {
 	return $defname;
 }
 
-global proc hideRigSkeleton() {
+global proc moctor_HideRigSkeleton() {
 	string $mapName = `optionMenuGrp -q -v moctor_RigOMG`;
 	string $namespace = getRigNamespace();
 	python(`format -s $namespace -s $mapName
 			"moctor.hideSkeleton('^1s', moctor.loadMapping('^2s'))"`);
 }
-
 
 global proc string moctor_MapRig() {
 	string $mapName = `optionMenuGrp -q -v moctor_RigOMG`;
@@ -516,7 +521,6 @@ global proc string moctor_MapRig() {
 	text -e -l $defname moctor_RigMappingStatus;
 	global string $moctor_defnames[];
 	catch($moctor_defnames = setMocapHikAsRigHikSource());
-	hideRigSkeleton();
 	moctor_UpdateUI();
 	return $defname;
 }
@@ -529,7 +533,6 @@ global proc string[] moctor_MapBoth() {
 }
 
 global proc moctor_SelectControls() {
-	hideRigSkeleton();
 	$mappingName = `optionMenuGrp -q -v moctor_RigOMG`;
 	$namespace = `textField -q -text moctor_RigNamespaceField`;
 	$getMappingCmd = python(`format -s $mappingName
@@ -616,6 +619,7 @@ global proc moctor_Delete() {
 
 global proc moctor_EnableAll() {
 	button -e -enable true moctor_MapMocapBtn;
+	button -e -enable true moctor_HideRigSkeletonBtn;
 	button -e -enable true moctor_SelectControlsBtn;
 	button -e -enable true moctor_CleanupMocapHIKBtn;
 	button -e -enable true moctor_DeleteMocapBtn;
