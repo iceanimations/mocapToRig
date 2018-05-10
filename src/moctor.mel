@@ -276,6 +276,7 @@ global proc moctor_ImportMocap() {
 	string $root = moctor_CheckMocapStatus();
 	if ($root != "") storeMocapPath($root, $fbx);
 	else error("Mocap Root Not Found");
+	moctor_UpdateUI();
 }
 
 global proc moctor_TPoseFrame() {
