@@ -106,6 +106,8 @@ global proc Mocap2RigUI() {
 							-c "moctor_HideRigSkeleton()"
 							moctor_HideRigSkeletonBtn;
 						setParent ..;
+					button -l "Fix TPose" -c "moctor_FixTPose()"
+						moctor_FixTPoseBtn;
 					setParent ..; // Exiting frameLayout
 
 				}
@@ -201,6 +203,7 @@ global proc moctor_Do() {
 
 global proc moctor_Apply() {
 	moctor_ImportBoth();
+	moctor_FixTPose();
 	moctor_MapBoth();
 	moctor_BakeRig();
 	moctor_CleanupBothHIK();
@@ -411,6 +414,7 @@ global proc moctor_CheckRigStatus() {
 				moctor_RigStatusLabel;
 
 		// buttons
+		button -e -enable false moctor_FixTPoseBtn;
 		button -e -enable false moctor_MapRigBtn;
 		button -e -enable false moctor_HideRigSkeletonBtn;
 		button -e -enable false moctor_SelectControlsBtn;
@@ -631,6 +635,7 @@ global proc moctor_EnableAll() {
 	button -e -enable true moctor_CleanupMocapHIKBtn;
 	button -e -enable true moctor_DeleteMocapBtn;
 	button -e -enable true moctor_MapRigBtn;
+	button -e -enable true moctor_FixTPoseBtn;
 	button -e -enable true moctor_CleanupRigHIKBtn;
 	button -e -enable true moctor_ImportRefBtn;
 	button -e -enable true moctor_MapBothBtn;
@@ -648,5 +653,13 @@ global proc moctor_UpdateUI() {
 	getMocapDefinition();
 	getRigMappingStatus();
 }
+
+global proc moctor_FixTPose() {
+	string $ns = getRigNamespace();
+	string $map = `optionMenuGrp -q -v moctor_RigOMG`;
+	python(`format -s $ns -s $map
+			"moctor.fixRigTPose('^1s', '^2s')"`);
+}
+
 
 Mocap2RigUI();

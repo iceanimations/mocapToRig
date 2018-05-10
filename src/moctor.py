@@ -251,8 +251,53 @@ def getRigHikDefinition(namespace, mappingName):
 #  Utility functions  #
 #######################
 
+def makeArmHorizontal(sh, el, ctrl):
+    p1 = pc.dt.Point(pc.xform(sh, q=True, ws=True, t=True))
+    p2 = pc.dt.Point(pc.xform(el, q=True, ws=True, t=True))
+    v = (p2-p1).normal()
+
+    x = v.dot(pc.dt.Vector.xAxis)
+    z = v.dot(pc.dt.Vector.zAxis)
+
+    proj = pc.dt.Vector(x, 0, z).normal()
+    quat = v.rotateTo(proj)
+    rot = pc.dt.degrees(quat.asEulerRotation())
+
+    pc.rotate(ctrl, pc.dt.degrees(quat.asEulerRotation()), ws=True, r=True)
+
+    return rot
+
+
+def makeIKFollow(fk, ik, rot):
+    pos = pc.xform(fk, q=True, ws=True, t=True)
+    # rot = pc.xform(fk, q=True, ws=True, ro=True)
+    pc.xform(ik, ws=True, t=pos)
+    pc.rotate(ik, rot, ws=True, r=True)
+
+
 def fixRigTPose(namespace, mappingName):
-    pass
+    skeletonMapping = loadMapping(mappingName, MappingTypes.sk)
+    controlsMapping = loadMapping(mappingName, MappingTypes.cr)
+
+    ls_ctrl = getMappingElement(controlsMapping, 9)
+    ls_jnt = getMappingElement(skeletonMapping, 9)
+    le_jnt = getMappingElement(skeletonMapping, 10)
+    l_rot = makeArmHorizontal(
+            namespace+ls_jnt, namespace+le_jnt, namespace+ls_ctrl)
+
+    larm_ik = getMappingElement(controlsMapping, 11)
+    lwrist_fk = getMappingElement(skeletonMapping, 11)
+    makeIKFollow(namespace+lwrist_fk, namespace+larm_ik, l_rot)
+
+    rs_ctrl = getMappingElement(controlsMapping, 12)
+    rs_jnt = getMappingElement(skeletonMapping, 12)
+    re_jnt = getMappingElement(skeletonMapping, 13)
+    r_rot = makeArmHorizontal(
+            namespace+rs_jnt, namespace+re_jnt, namespace+rs_ctrl)
+
+    rarm_ik = getMappingElement(controlsMapping, 14)
+    rwrist_fk = getMappingElement(skeletonMapping, 14)
+    makeIKFollow(namespace+rwrist_fk, namespace+rarm_ik, r_rot)
 
 
 def linkMocapHikToRigHik(mocapDefinition, rigDefinition):
