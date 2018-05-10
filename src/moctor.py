@@ -73,11 +73,15 @@ def checkMappingRoot(mappingName, namespace='', typ=MappingTypes.sk):
     return ''
 
 
-def getMappingRoot(mapping):
+def getMappingElement(mapping, index):
     for node, num in mapping.items():
-        if num == 1:
+        if num == index:
             return node
     return ''
+
+
+def getMappingRoot(mapping):
+    return getMappingElement(mapping, 1)
 
 
 def getHikDefFromSKRoot(namespace, skRoot):
@@ -247,6 +251,9 @@ def getRigHikDefinition(namespace, mappingName):
 #  Utility functions  #
 #######################
 
+def fixRigTPose(namespace, mappingName):
+    pass
+
 
 def linkMocapHikToRigHik(mocapDefinition, rigDefinition):
     prepareHIK()
@@ -349,12 +356,29 @@ def deleteMocap(mapName):
     pc.delete(root)
 
 
+def cleanupMocapHIK(definition):
+    pc.mel.HIKCharacterControlsTool()
+    pc.mel.hikSetCurrentCharacter(definition)
+    pc.mel.hikUpdateCharacterList()
+    pc.mel.hikSelectDefinitionTab()
+    pc.mel.hikDeleteDefinition()
+    pc.mel.hikUpdateCharacterList()
+
+
+def cleanupRigHIK(definition):
+    pc.mel.HIKCharacterControlsTool()
+    pc.mel.hikSetCurrentCharacter(definition)
+    pc.mel.hikSelectCustomRigTab()
+    pc.mel.hikDeleteCustomRig(definition)
+    pc.mel.hikUpdateCharacterList()
+    pc.mel.hikSelectDefinitionTab()
+    pc.mel.hikDeleteDefinition()
+    pc.mel.hikUpdateCharacterList()
+
+
 def cleanupHIK(mocapRoot):
-        pc.mel.hikDeleteCustomRig(pc.mel.hikGetCurrentCharacter())
-        pc.mel.hikDeleteDefinition()
-        pc.mel.hikSelectDefinitionTab()
-        pc.mel.hikDeleteDefinition()
-        pc.delete(mocapRoot)
+    cleanupMocapHIK()
+    cleanupRigHIK()
 
 
 def getNamespaceFromSelection():
@@ -399,7 +423,11 @@ def prepareHIK(startFrame=0):
     pc.currentTime(startFrame)
 
 
-def setRange(mocapRoot):
+def setRange(arg):
+    if isinstance(arg, dict):
+        mocapRoot = getMappingRoot(arg)
+    else:
+        mocapRoot = arg
     startFrame, endFrame = getAnimRange(mocapRoot)
     pc.playbackOptions(minTime=startFrame, maxTime=endFrame)
 

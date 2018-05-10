@@ -3,12 +3,12 @@ python("import mocapToRig\n"+
 		"reload(moctor)\n");
 
 /*
-TODO: Introduce Translation and Rotation Mapping for Controls
 TODO: Fix Rig T-Pose
 TODO: Clean All keys before applying Mapping to Rig, Zero Out later
 TODO: Allow Mocap as Maya files with namespaces (and Controls)
 TODO: Read and Store Mapping From Scene
 TODO: Fix Mocap T-pose
+TODO: Introduce Translation and Rotation Mapping for Controls
 TODO: Auto kill delete Prompts
 */
 
@@ -32,26 +32,32 @@ global proc Mocap2RigUI() {
 				{ // mocap Frame
 					frameLayout -label "Mocap"; // for mocap
 					columnLayout -adjustableColumn true;
-					optionMenuGrp
-						-label "Mapping:"
-						-extraLabel ".sk.json"
-						-columnAttach3 left left left
-						-columnAlign3 left left right
-						-columnWidth3 50 130 50
-						-changeCommand "moctor_UpdateUI()"
-						moctor_MocapOMG;
-					menuItem -label "iPi";
-					textFieldButtonGrp
-						-label "Mocap:"
-						-text ""
-						-ad3 2
-						-cw3 50 150 50
-						-buttonLabel "..."
-						-buttonCommand "moctor_BrowseMocap()"
-						moctor_MocapFile;
-					button -label "Import Mocap" -c "moctor_ImportMocap()";
-					text -l "" moctor_MocapStatusLabel;
-					setParent ..; // back to frameLayout for mocap
+						optionMenuGrp
+							-label "Mapping:"
+							-extraLabel ".sk.json"
+							-columnAttach3 left left left
+							-columnAlign3 left left right
+							-columnWidth3 50 130 50
+							-changeCommand "moctor_UpdateUI()"
+							moctor_MocapOMG;
+						menuItem -label "iPi";
+						textFieldButtonGrp
+							-label "Mocap:"
+							-text ""
+							-ad3 2
+							-cw3 50 150 50
+							-buttonLabel "..."
+							-buttonCommand "moctor_BrowseMocap()"
+							moctor_MocapFile;
+						button -label "Import Mocap" -c "moctor_ImportMocap()";
+						text -l "" moctor_MocapStatusLabel;
+						rowLayout -nc 2 -adj true;
+							button -l "Go To T-pose" -c "moctor_TPoseFrame()"
+									moctor_TPoseFrameBtn;
+							button -l "Set Range" -c "moctor_SetRange()"
+									moctor_SetRangeBtn;
+							setParent ..;
+						setParent ..; // back to frameLayout for mocap
 					setParent ..; // Exit frameLayout
 				}
 
@@ -257,6 +263,8 @@ global proc string moctor_CheckMocapStatus() {
 		button -e -enable false moctor_CleanupBothHIKBtn;
 		button -e -enable false moctor_DeleteBtn;
 		button -e -enable false moctor_BakeRigBtn;
+		button -e -enable false moctor_TPoseFrameBtn;
+		button -e -enable false moctor_SetRangeBtn;
 	}
 	return "";
 }
@@ -268,6 +276,16 @@ global proc moctor_ImportMocap() {
 	string $root = moctor_CheckMocapStatus();
 	if ($root != "") storeMocapPath($root, $fbx);
 	else error("Mocap Root Not Found");
+}
+
+global proc moctor_TPoseFrame() {
+	currentTime 0;
+}
+
+global proc moctor_SetRange() {
+	$mapping = `optionMenuGrp -q -v moctor_MocapOMG`;
+	python(`format -s $mapping
+			"moctor.setRange(moctor.loadMapping('^1s'))"`);
 }
 
 proc string getRigNamespace() {
@@ -568,12 +586,7 @@ global proc moctor_BakeRig() {
 global proc moctor_CleanupMocapHIK() {
 	$md = getMocapDefinition();
 	if ($md != "") {
-		HIKCharacterControlsTool();
-		hikSetCurrentCharacter($md);
-		hikUpdateCharacterList();
-		hikSelectDefinitionTab();
-		hikDeleteDefinition();
-		hikUpdateCharacterList();
+		python(`format -s $md "moctor.cleanupMocapHIK('^1s')"`);
 	}
 	moctor_UpdateUI();
 }
@@ -581,14 +594,7 @@ global proc moctor_CleanupMocapHIK() {
 global proc moctor_CleanupRigHIK() {
 	$rd = getRigDefinition();
 	if ($rd != "") {
-		HIKCharacterControlsTool();
-		hikSetCurrentCharacter($rd);
-		hikSelectCustomRigTab();
-		hikDeleteCustomRig($rd);
-		hikUpdateCharacterList();
-		hikSelectDefinitionTab();
-		hikDeleteDefinition();
-		hikUpdateCharacterList();
+		python(`format -s $rd "moctor.cleanupRigHIK('^1s')"`);
 	}
 	moctor_UpdateUI();
 }
@@ -630,6 +636,8 @@ global proc moctor_EnableAll() {
 	button -e -enable true moctor_CleanupBothHIKBtn;
 	button -e -enable true moctor_DeleteBtn;
 	button -e -enable true moctor_BakeRigBtn;
+	button -e -enable true moctor_TPoseFrameBtn;
+	button -e -enable true moctor_SetRangeBtn;
 }
 
 global proc moctor_UpdateUI() {
