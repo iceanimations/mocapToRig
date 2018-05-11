@@ -3,13 +3,13 @@ python("import mocapToRig\n"+
 		"reload(moctor)\n");
 
 /*
-TODO: Fix Rig T-Pose
+TODO: Zeroing Out
 TODO: Clean All keys before applying Mapping to Rig, Zero Out later
-TODO: Allow Mocap as Maya files with namespaces (and Controls)
 TODO: Read and Store Mapping From Scene
+TODO: Auto kill delete Prompts
 TODO: Fix Mocap T-pose
 TODO: Introduce Translation and Rotation Mapping for Controls
-TODO: Auto kill delete Prompts
+TODO: Allow Mocap as Maya files with namespaces (and Controls)
 */
 
 global proc Mocap2RigUI() {

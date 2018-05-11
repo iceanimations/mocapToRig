@@ -210,12 +210,16 @@ def mapRigControls(namespace, defname, rigControlsMappings):
         try:
             pc.select(namespace + node)
             pc.mel.hikCustomRigAssignEffector(num)
-            pc.mel.hikCustomRigAddRemoveMapping("R", 1)
+            if pc.getAttr(node + '.rx', l=True):
+                pc.mel.hikCustomRigAddRemoveMapping("R", 1)
             if 'FK' in node:
                 pc.mel.hikCustomRigAddRemoveMapping("T", 0)
-            else:
+            elif pc.getAttr(node + '.tx', l=True):
                 pc.mel.hikCustomRigAddRemoveMapping("T", 1)
-        except RuntimeError:
+            if pc.getAttr(node + '.rx', l=True):
+                pc.mel.hikCustomRigAddRemoveMapping("R", 1)
+        except (RuntimeError, pc.MayaNodeError, AttributeError,
+                pc.MayaAttributeError):
             pass
 
     pc.select(selection)
