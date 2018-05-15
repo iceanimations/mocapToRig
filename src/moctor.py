@@ -1,7 +1,15 @@
 '''
 Created on Mar 19, 2018
 
-@author: qurban.ali
+@author: qurban.ali talha.ahmed
+
+A library of convenience functions used for transferring iPi motion capture
+data in FBX format to Maya Rigs. This code uses Maya's HumanIK technology for
+motion retargetting. The script has been tested to work on Maya 2016.
+
+Currently only advanced skeleton rigs are only
+supported.
+
 '''
 
 
@@ -210,14 +218,14 @@ def mapRigControls(namespace, defname, rigControlsMappings):
         try:
             pc.select(namespace + node)
             pc.mel.hikCustomRigAssignEffector(num)
-            if pc.getAttr(node + '.rx', l=True):
+
+            if not pc.getAttr(namespace + node + '.rx', l=True):
                 pc.mel.hikCustomRigAddRemoveMapping("R", 1)
             if 'FK' in node:
                 pc.mel.hikCustomRigAddRemoveMapping("T", 0)
-            elif pc.getAttr(node + '.tx', l=True):
+            elif not pc.getAttr(namespace + node + '.tx', l=True):
                 pc.mel.hikCustomRigAddRemoveMapping("T", 1)
-            if pc.getAttr(node + '.rx', l=True):
-                pc.mel.hikCustomRigAddRemoveMapping("R", 1)
+
         except (RuntimeError, pc.MayaNodeError, AttributeError,
                 pc.MayaAttributeError):
             pass

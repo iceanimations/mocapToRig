@@ -1,6 +1,17 @@
-python("import mocapToRig\n"+
-		"moctor = mocapToRig.moctor\n"+
-		"reload(moctor)\n");
+/*
+Contains MEL UI front end for moctor.py
+
+Moctor implements a step by step approach of using human IK to retarget motion
+capture data onto Maya Rigs
+
+Author: Talha.Ahmed
+*/
+
+
+// import and reload the backend python module
+python("import mocapToRig\n" +
+		"moctor = mocapToRig.moctor\n" +
+		"reload(moctor)\n" );
 
 /*
 TODO: Zeroing Out
@@ -12,6 +23,12 @@ TODO: Introduce Translation and Rotation Mapping for Controls
 TODO: Allow Mocap as Maya files with namespaces (and Controls)
 */
 
+/* Mocap2RigUI()
+Implements the Front End of Mocap2Rig or moctor
+
+Enables the user to perform motion retargetting in a single click as well as in
+a step by step approach
+*/
 global proc Mocap2RigUI() {
 	moctor_Close();
 
@@ -177,28 +194,6 @@ global proc moctor_Close() {
 	if (`window -exists Mocap2RigUI`) {
 		deleteUI Mocap2RigUI;
 	}
-}
-
-global proc moctor_Do() {
-	string $mocapMapping = `optionMenuGrp -q -v moctor_MocapOMG`;
-	string $mocapPath = `textFieldButtonGrp -q -text moctor_MocapFile`;
-	string $rigMapping = `optionMenuGrp -q -v moctor_RigOMG`;
-	string $rigPath = `textFieldButtonGrp -q -text moctor_RigFile`;
-	string $cmd = `format
-			-s $mocapPath -s $mocapMapping
-			-s $rigMapping -s $rigPath
-			("moctor.applyMocapToRig(mocapPath='^1s', mocapMapping='^2s', "
-			  +"rigMapping='^3s', rigPath='^4s')")`;
-	if ($rigPath == "") {
-		string $rigNamespace = getRigNamespace();
-		string $cmd = `format
-				-s $mocapPath -s $mocapMapping
-				-s $rigMapping -s $rigNamespace
-				("moctor.applyMocapToRig(mocapPath='^1s', mocapMapping='^2s', "
-				 +"rigMapping='^3s', rigNamespace='^4s')")`;
-	}
-	python($cmd);
-	moctor_UpdateUI();
 }
 
 global proc moctor_Apply() {
