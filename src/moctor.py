@@ -28,6 +28,10 @@ MEL_PROC_FILE = osp.join(
 pc.mel.source(MEL_PROC_FILE.replace('\\', '/'))
 
 
+pc.loadPlugin('fbxmaya')
+pc.loadPlugin('mayaHIK')
+
+
 ##################################
 #  Storing and Loading Mappings  #
 ##################################
@@ -153,24 +157,32 @@ def getHikDestinations(definition):
     return dests
 
 
+def lockDefinition(defname):
+    pc.mel.hikReadStancePoseTRSOffsets(defname)
+    pc.setAttr(defname + '.InputCharacterizationLock', True)
+
+
+def unlockDefinition(defname):
+    pc.setAttr(defname + '.InputCharacterizationLock', False)
+
+
 def mapMocapSkeleton(namespace, mocapSkeletonMappings):
     prepareHIK()
     selection = pc.selected()
     root = getMappingRoot(mocapSkeletonMappings)
-    setRange(namespace + root)
     defname = getHikDefFromSKRoot(namespace, root)
     if not defname:
         defname = createHikDefinition(name='MocapCharacter1')
     else:
         pc.mel.hikSetCurrentCharacter(defname)
-        pc.mel.hikToggleLockDefinition()
-    for node, num in mocapSkeletonMappings.items():
+        unlockDefinition(defname)
+    for name, num in mocapSkeletonMappings.items():
+        node = namespace + name
         try:
-            pc.mel.setCharacterObject(namespace + node, defname, num, 0)
-            pc.PyNode(namespace + node).drawStyle.set(2)
+            pc.mel.setCharacterObject(node, defname, num, 0)
         except (pc.MayaNodeError, RuntimeError) as re:
-            print (str(re), namespace + node, 'not found')
-    pc.mel.hikToggleLockDefinition()
+            pc.warning(str(re), namespace + node, 'not found')
+    lockDefinition(defname)
     pc.select(selection)
     return defname
 
@@ -184,15 +196,16 @@ def mapRigSkeleton(namespace, rigSkeletonMappings):
         defname = createHikDefinition(name='MocapCharacter1')
     else:
         pc.mel.hikSetCurrentCharacter(defname)
-        pc.mel.hikToggleLockDefinition()
-    for node, num in rigSkeletonMappings.items():
+        unlockDefinition(defname)
+    for name, num in rigSkeletonMappings.items():
+        node = namespace + name
         try:
             pc.mel.setCharacterObject(
-                    namespace + node, defname, num, 0)
-            pc.PyNode(namespace + node).drawStyle.set(2)
+                    node, defname, num, 0)
+            pc.setAttr(node + '.drawStyle', 2)
         except (pc.MayaNodeError, RuntimeError) as re:
-            print (str(re), namespace + node, 'not found')
-    pc.mel.hikToggleLockDefinition()
+            pc.warning(str(re), namespace + node, 'not found')
+    lockDefinition(defname)
     pc.select(selection)
     return defname
 
@@ -207,28 +220,29 @@ def hideSkeleton(namespace, mapping):
 
 def mapRigControls(namespace, defname, rigControlsMappings):
     prepareHIK()
-    pc.mel.hikSelectDefinitionTab()  # select and update appropriate tab
     selection = pc.selected()
 
-    if not pc.mel.hikHasCustomRig(defname):
-        pc.mel.hikCreateCustomRig(defname)
-    pc.mel.hikSelectCustomRigTab()
+    retargeter = pc.mel.RetargeterGetName(defname)
 
-    for node, num in rigControlsMappings.items():
+    if not pc.mel.RetargeterExists(retargeter):
+        pc.mel.RetargeterCreate(defname)
+
+    for name, num in rigControlsMappings.items():
+        node = namespace + name
+
         try:
-            pc.select(namespace + node)
-            pc.mel.hikCustomRigAssignEffector(num)
+            retargeter = pc.mel.RetargeterGetName(defname)
+            body = pc.mel.hikCustomRigElementNameFromId(defname, num)
 
-            if not pc.getAttr(namespace + node + '.rx', l=True):
-                pc.mel.hikCustomRigAddRemoveMapping("R", 1)
-            if 'FK' in node:
-                pc.mel.hikCustomRigAddRemoveMapping("T", 0)
-            elif not pc.getAttr(namespace + node + '.tx', l=True):
-                pc.mel.hikCustomRigAddRemoveMapping("T", 1)
+            if not isLocked(node, 'rotate'):
+                pc.mel.RetargeterAddMapping(retargeter, body, "R", node, num)
+            if 'FK' not in node and not isLocked(node, 'translate'):
+                pc.mel.RetargeterAddMapping(retargeter, body, "T", node, num)
 
         except (RuntimeError, pc.MayaNodeError, AttributeError,
-                pc.MayaAttributeError):
-            pass
+                pc.MayaAttributeError) as error:
+            pc.warning("problem in mapping to %s: %s)" % (
+                       namespace+node, str(error)))
 
     pc.select(selection)
 
@@ -262,6 +276,7 @@ def getRigHikDefinition(namespace, mappingName):
 #######################
 #  Utility functions  #
 #######################
+
 
 def makeArmHorizontal(sh, el, ctrl):
     p1 = pc.dt.Point(pc.xform(sh, q=True, ws=True, t=True))
@@ -315,7 +330,7 @@ def fixRigTPose(namespace, mappingName):
 def linkMocapHikToRigHik(mocapDefinition, rigDefinition):
     prepareHIK()
     pc.mel.hikSetCurrentCharacter(rigDefinition)
-    pc.mel.hikUpdateCurrentSourceFromName(mocapDefinition)
+    pc.mel.hikSetCharacterInput(rigDefinition, mocapDefinition)
 
 
 def bakeRig(namespace, mocapMappingName, rigMappingName):
@@ -359,10 +374,8 @@ def getUniqueName(name):
 
 def createHikDefinition(name='MocapCharacter1'):
     hikDefinitionName = getUniqueName(name)
-    pc.mel.hikCreateCharacter(hikDefinitionName)
-    pc.mel.hikUpdateCharacterList()  # update the character list
-    pc.mel.hikSelectDefinitionTab()  # select and update appropriate tab
-    return hikDefinitionName
+    defname = pc.mel.hikCreateCharacter(hikDefinitionName)
+    return defname
 
 
 def importMocap(mocapPath, namespace=None):
@@ -409,28 +422,21 @@ def importRig(rigPath):
 def deleteMocap(mapName):
     mapping = loadMapping(mapName)
     root = getMappingRoot(mapping)
-    print mapping, root
     pc.delete(root)
 
 
 def cleanupMocapHIK(definition):
-    pc.mel.HIKCharacterControlsTool()
-    pc.mel.hikSetCurrentCharacter(definition)
-    pc.mel.hikUpdateCharacterList()
-    pc.mel.hikSelectDefinitionTab()
-    pc.mel.hikDeleteDefinition()
-    pc.mel.hikUpdateCharacterList()
+    retargeter = pc.mel.RetargeterGetName(definition)
+    if pc.objExists(retargeter):
+        pc.mel.RetargeterDelete(retargeter)
+    pc.delete(definition)
 
 
 def cleanupRigHIK(definition):
-    pc.mel.HIKCharacterControlsTool()
-    pc.mel.hikSetCurrentCharacter(definition)
-    pc.mel.hikSelectCustomRigTab()
-    pc.mel.hikDeleteCustomRig(definition)
-    pc.mel.hikUpdateCharacterList()
-    pc.mel.hikSelectDefinitionTab()
-    pc.mel.hikDeleteDefinition()
-    pc.mel.hikUpdateCharacterList()
+    retargeter = pc.mel.RetargeterGetName(definition)
+    if pc.objExists(retargeter):
+        pc.mel.RetargeterDelete(retargeter)
+    pc.delete(definition)
 
 
 def cleanupHIK(mocapRoot):
@@ -475,8 +481,6 @@ def getReferencePathFromNamespace(namespace):
 
 
 def prepareHIK(startFrame=0):
-    pc.mel.HIKCharacterControlsTool()
-    pc.playbackOptions(minTime=startFrame)
     pc.currentTime(startFrame)
 
 
@@ -511,9 +515,19 @@ def importRigFromReference(rigPath, cleanup=True):
             pc.delete(pc.ls(type='unknown'))
 
 
+def isLocked(node, attr):
+    if not attr.startswith('.'):
+        attr = '.' + attr
+    for add in ('', 'X', 'Y', 'Z'):
+        if pc.getAttr(node + attr + add, l=True):
+            return True
+    return False
+
+
 ###############################
 #  Main Application Function  #
 ###############################
+
 
 def apply(
         mocapPath=None, rigNamespace=None,
@@ -591,3 +605,4 @@ def apply(
         bakeRig()
 
         cleanupHIK(mocapRoot)
+

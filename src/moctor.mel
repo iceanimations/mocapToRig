@@ -515,6 +515,7 @@ global proc string[] setMocapHikAsRigHikSource() {
 }
 
 global proc string moctor_MapMocap() {
+	moctor_SetRange();
 	string $mapName = `optionMenuGrp -q -v moctor_MocapOMG`;
 	string $defname = python(`format
 			-s $mapName "moctor.mapMocap('^1s')"`);
@@ -532,6 +533,7 @@ global proc moctor_HideRigSkeleton() {
 }
 
 global proc string moctor_MapRig() {
+	moctor_SetRange();
 	string $mapName = `optionMenuGrp -q -v moctor_RigOMG`;
 	string $namespace = getRigNamespace();
 	string $defname = python(`format -s $namespace -s $mapName
