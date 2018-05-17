@@ -144,8 +144,7 @@ def getHikDestinationSourceMapping():
 
 
 def getHikSource(definition):
-    mapping = getHikDestinationSourceMapping()
-    return mapping.get(definition, '')
+    return pc.mel.hikGetCharacterInputString(definition)
 
 
 def getHikDestinations(definition):

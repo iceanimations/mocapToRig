@@ -17,9 +17,7 @@ python("import mocapToRig\n" +
 TODO: Zeroing Out
 TODO: Clean All keys before applying Mapping to Rig, Zero Out later
 TODO: Read and Store Mapping From Scene
-TODO: Auto kill delete Prompts
 TODO: Fix Mocap T-pose
-TODO: Introduce Translation and Rotation Mapping for Controls
 TODO: Allow Mocap as Maya files with namespaces (and Controls)
 */
 
