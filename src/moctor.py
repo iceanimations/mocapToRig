@@ -458,6 +458,8 @@ def getRefFileFromPath(path):
     rigPath = osp.normcase(osp.normpath(path))
     for ref in pc.ls(type='reference'):
         refFile = ref.referenceFile()
+        if not refFile:
+            continue
         refPath = osp.normpath(osp.normcase(refFile.path))
         if rigPath == refPath:
             return refFile
@@ -474,6 +476,8 @@ def getReferencePathFromNamespace(namespace):
     namespace = namespace.strip(':')
     for ref in pc.ls(type='reference'):
         refFile = ref.referenceFile()
+        if not refFile:
+            continue
         if refFile.namespace == namespace:
             return ref.referenceFile().path
     return ''
