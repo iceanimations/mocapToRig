@@ -69,11 +69,26 @@ global proc Mocap2RigUI() {
 						button -label "Import Mocap" -c "moctor_ImportMocap()";
 						text -l "" moctor_MocapStatusLabel;
 						rowLayout -nc 2 -adj true;
-							button -l "Go To T-pose" -c "moctor_TPoseFrame()"
+							button -l "Go To T-pose Frame" -c "moctor_TPoseFrame()"
 									moctor_TPoseFrameBtn;
 							button -l "Set Range" -c "moctor_SetRange()"
 									moctor_SetRangeBtn;
 							setParent ..;
+						rowLayout -nc 2 -adj true -cw2 115 115 -width 20
+						-height 40;
+							text -l "";
+							text -l "";
+							setParent ..;
+						rowLayout -nc 3 -adj true;
+							button -l "Mocap Zero Out" -c
+								"moctor_MocapZeroOut()"
+								moctor_MocapZeroOutBtn;
+							button -l "Fix Mocap T-pose" -c
+								"moctor_FixMocapTPose()"
+								moctor_FixMocapTPoseBtn;
+							button -l "Set Key" -c "moctor_MocapSetKeyframe()"
+								moctor_MocapSetKeyframeBtn;
+							setParent..;
 						setParent ..; // back to frameLayout for mocap
 					setParent ..; // Exit frameLayout
 				}
@@ -254,6 +269,9 @@ global proc string moctor_CheckMocapStatus() {
 		$str += "Mocap Root Not Found!";
 		text -e -l $str -bgc $color[0] $color[1] $color[2]
 				moctor_MocapStatusLabel;
+		button -e -enable false moctor_MocapSetKeyframeBtn;
+		button -e -enable false moctor_FixMocapTPoseBtn;
+		button -e -enable false moctor_MocapZeroOutBtn;
 		button -e -enable false moctor_MapMocapBtn;
 		button -e -enable false moctor_CleanupMocapHIKBtn;
 		button -e -enable false moctor_DeleteMocapBtn;
@@ -279,6 +297,9 @@ global proc moctor_ImportMocap() {
 
 global proc moctor_TPoseFrame() {
 	currentTime 0;
+}
+
+global proc moctor_MocapZeroOut() {
 	$mapping = `optionMenuGrp -q -v moctor_MocapOMG`;
 	python(`format -s $mapping
 			"moctor.mocapZeroOut('', moctor.loadMapping('^1s'))"`);
@@ -629,6 +650,9 @@ global proc moctor_Delete() {
 }
 
 global proc moctor_EnableAll() {
+	button -e -enable true moctor_MocapSetKeyframeBtn;
+	button -e -enable true moctor_FixMocapTPoseBtn;
+	button -e -enable true moctor_MocapZeroOutBtn;
 	button -e -enable true moctor_MapMocapBtn;
 	button -e -enable true moctor_HideRigSkeletonBtn;
 	button -e -enable true moctor_SelectControlsBtn;
@@ -652,6 +676,17 @@ global proc moctor_UpdateUI() {
 	moctor_CheckRigStatus();
 	getMocapDefinition();
 	getRigMappingStatus();
+}
+
+global proc moctor_FixMocapTPose() {
+	string $map = `optionMenuGrp -q -v moctor_MocapOMG`;
+	python(`format -s $map "moctor.fixMocapTPose('', '^1s')"`);
+}
+
+global proc moctor_MocapSetKeyframe() {
+	$mapping = `optionMenuGrp -q -v moctor_MocapOMG`;
+	python(`format -s $mapping
+			"moctor.mocapSetKeyframe('', moctor.loadMapping('^1s'))"`);
 }
 
 global proc moctor_FixTPose() {

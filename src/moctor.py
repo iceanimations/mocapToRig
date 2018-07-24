@@ -197,6 +197,11 @@ def mocapZeroOut(namespace, mocapSkeletonMappings):
             pc.setAttr(node + '.ry', 0)
             pc.setAttr(node + '.rz', 0)
 
+
+def mocapSetKeyframe(namespace, mocapSkeletenmappings):
+    for name, num in mocapSkeletenmappings.items():
+        node = namespace + name
+        if pc.objExists(node):
             pc.setKeyframe(node + '.rx')
             pc.setKeyframe(node + '.ry')
             pc.setKeyframe(node + '.rz')
@@ -340,6 +345,22 @@ def fixRigTPose(namespace, mappingName):
     rarm_ik = getMappingElement(controlsMapping, 14)
     rwrist_fk = getMappingElement(skeletonMapping, 14)
     makeIKFollow(namespace+rwrist_fk, namespace+rarm_ik, r_rot)
+
+
+def fixMocapTPose(namespace, mappingName):
+    skeletonMapping = loadMapping(mappingName, MappingTypes.sk)
+
+    ls_ctrl = getMappingElement(skeletonMapping, 18)
+    ls_jnt = getMappingElement(skeletonMapping, 9)
+    le_jnt = getMappingElement(skeletonMapping, 10)
+    makeArmHorizontal(
+            namespace+ls_jnt, namespace+le_jnt, namespace+ls_ctrl)
+
+    rs_ctrl = getMappingElement(skeletonMapping, 19)
+    rs_jnt = getMappingElement(skeletonMapping, 12)
+    re_jnt = getMappingElement(skeletonMapping, 13)
+    makeArmHorizontal(
+            namespace+rs_jnt, namespace+re_jnt, namespace+rs_ctrl)
 
 
 def linkMocapHikToRigHik(mocapDefinition, rigDefinition):
