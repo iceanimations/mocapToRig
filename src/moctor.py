@@ -170,20 +170,36 @@ def mapMocapSkeleton(namespace, mocapSkeletonMappings):
     selection = pc.selected()
     root = getMappingRoot(mocapSkeletonMappings)
     defname = getHikDefFromSKRoot(namespace, root)
+
     if not defname:
         defname = createHikDefinition(name='MocapCharacter1')
     else:
         pc.mel.hikSetCurrentCharacter(defname)
         unlockDefinition(defname)
+
     for name, num in mocapSkeletonMappings.items():
         node = namespace + name
         try:
             pc.mel.setCharacterObject(node, defname, num, 0)
         except (pc.MayaNodeError, RuntimeError) as re:
             pc.warning(str(re), namespace + node, 'not found')
+
     lockDefinition(defname)
     pc.select(selection)
     return defname
+
+
+def mocapZeroOut(namespace, mocapSkeletonMappings):
+    for name, num in mocapSkeletonMappings.items():
+        node = namespace + name
+        if pc.objExists(node):
+            pc.setAttr(node + '.rx', 0)
+            pc.setAttr(node + '.ry', 0)
+            pc.setAttr(node + '.rz', 0)
+
+            pc.setKeyframe(node + '.rx')
+            pc.setKeyframe(node + '.ry')
+            pc.setKeyframe(node + '.rz')
 
 
 def mapRigSkeleton(namespace, rigSkeletonMappings):

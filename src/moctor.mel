@@ -19,6 +19,7 @@ TODO: Clean All keys before applying Mapping to Rig, Zero Out later
 TODO: Read and Store Mapping From Scene
 TODO: Fix Mocap T-pose
 TODO: Allow Mocap as Maya files with namespaces (and Controls)
+TODO: Allow import from mixamo fbx (with bound geo), no T-pose, fix T-pose
 */
 
 /* Mocap2RigUI()
@@ -56,6 +57,7 @@ global proc Mocap2RigUI() {
 							-changeCommand "moctor_UpdateUI()"
 							moctor_MocapOMG;
 						menuItem -label "iPi";
+						menuItem -label "mixamo";
 						textFieldButtonGrp
 							-label "Mocap:"
 							-text ""
@@ -277,6 +279,9 @@ global proc moctor_ImportMocap() {
 
 global proc moctor_TPoseFrame() {
 	currentTime 0;
+	$mapping = `optionMenuGrp -q -v moctor_MocapOMG`;
+	python(`format -s $mapping
+			"moctor.mocapZeroOut('', moctor.loadMapping('^1s'))"`);
 }
 
 global proc moctor_SetRange() {
@@ -569,7 +574,7 @@ global proc moctor_BakeRig() {
 	float $frames[];
 	string $sf, $ef;
 
-	string $animCurves[] = `listConnections -d off -s on -scn off "Hip"`;
+	string $animCurves[] = `listConnections -d off -s on -scn off $mocapRoot`;
 	$frames = `keyframe -q $animCurves[0]`;
 	$ef = $frames[size($frames) - 1];
 	$sf = $frames[0];
@@ -655,6 +660,5 @@ global proc moctor_FixTPose() {
 	python(`format -s $ns -s $map
 			"moctor.fixRigTPose('^1s', '^2s')"`);
 }
-
 
 Mocap2RigUI();
