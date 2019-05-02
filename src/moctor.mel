@@ -58,6 +58,7 @@ global proc Mocap2RigUI() {
 							moctor_MocapOMG;
 						menuItem -label "iPi";
 						menuItem -label "mixamo";
+						menuItem -label "Orion01";
 						textFieldButtonGrp
 							-label "Mocap:"
 							-text ""
