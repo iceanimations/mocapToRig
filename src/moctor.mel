@@ -593,11 +593,10 @@ global proc moctor_BakeRig() {
 	$rigMap = `optionMenuGrp -q -v moctor_RigOMG`;
 	$mocapRoot = python(`format -s $mocapMap
 			"moctor.getMappingRoot(moctor.loadMapping('^1s'))"`);
+
 	float $frames[];
 	string $sf, $ef;
-
-	string $animCurves[] = `listConnections -d off -s on -scn off $mocapRoot`;
-	$frames = `keyframe -q $animCurves[0]`;
+	$frames = python(`format -s $mocapRoot "moctor.getAnimRange('^1s')"`);
 	$ef = $frames[size($frames) - 1];
 	$sf = $frames[0];
 	string $range = $sf + ":" + $ef;
