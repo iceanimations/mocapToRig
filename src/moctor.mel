@@ -106,6 +106,7 @@ global proc Mocap2RigUI() {
 						-changeCommand "moctor_UpdateUI()"
 						moctor_RigOMG;
 					menuItem -label "AdvancedSkeleton";
+					menuItem -label "BilalRig";
 					textFieldButtonGrp
 						-label "Rig:"
 						-text ""
