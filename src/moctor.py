@@ -391,8 +391,13 @@ def bakeRig(namespace, mocapMappingName, rigMappingName):
 
 def getRigControls(namespace, rigControlsMappings, select=False):
     controls = [namespace + x for x in rigControlsMappings.keys()]
+    pc.select(cl=True)
     if select:
-        pc.select(controls)
+        for ctrl in controls:
+            if pc.objExists(ctrl):
+                pc.select(ctrl, add=True)
+            else:
+                pc.warning('Object %s not found' % ctrl)
     return controls
 
 
