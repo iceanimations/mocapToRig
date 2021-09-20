@@ -60,6 +60,7 @@ global proc Mocap2RigUI() {
 						menuItem -label "mixamo";
 						menuItem -label "Orion01";
             menuItem -label "Rokoko";
+            menuItem -label "default";
 						textFieldButtonGrp
 							-label "Mocap:"
 							-text ""
