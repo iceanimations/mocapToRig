@@ -59,6 +59,7 @@ global proc Mocap2RigUI() {
 						menuItem -label "iPi";
 						menuItem -label "mixamo";
 						menuItem -label "Orion01";
+            menuItem -label "Rokoko";
 						textFieldButtonGrp
 							-label "Mocap:"
 							-text ""
@@ -107,6 +108,7 @@ global proc Mocap2RigUI() {
 						moctor_RigOMG;
 					menuItem -label "AdvancedSkeleton";
 					menuItem -label "BilalRig";
+          menuItem -label "AdvancedSkeleton2";
 					textFieldButtonGrp
 						-label "Rig:"
 						-text ""

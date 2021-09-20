@@ -41,6 +41,7 @@ MAPPINGS_DIR = osp.join(osp.dirname(osp.dirname(__file__)), 'mappings')
 
 
 class MappingTypes:
+    ''' Mapping Types, Either Skeleton or Control Rig '''
     sk = Skeleton = 'sk'
     cr = ControlRig = 'cr'
 
@@ -404,7 +405,7 @@ def getRigControls(namespace, rigControlsMappings, select=False):
 def getUniqueName(name):
     cnt = 1
     while pc.objExists(name):
-        match = re.search('\d+', name)
+        match = re.search('\\d+', name)
         if match:
             name = name.replace(match.group(), str(cnt))
         else:
