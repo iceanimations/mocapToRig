@@ -545,9 +545,11 @@ def getAnimRange(mocapRoot):
     if not animCurves:
         return (pc.playbackOptions(q=True, minTime=True),
                 pc.playbackOptions(q=True, maxTime=True))
-    frames = pc.keyframe(animCurves[0], q=1)
-    startFrame = frames[0]
-    endFrame = frames[-1]
+
+
+    startFrame = min([pc.keyframe(curve, q=1)[0] for curve in animCurves])
+    endFrame = max([pc.keyframe(curve, q=1)[-1] for curve in animCurves])
+
     return startFrame, endFrame
 
 
