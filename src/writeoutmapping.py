@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import json
 import pymel.core as pc
 from collections import OrderedDict
 import mocapToRig
@@ -17,6 +18,6 @@ for name, num in map_hik.items():
 print map_sk 
 
 moctor_base = op.dirname(mocapToRig.__file__)
-sk_path = op.join(moctor_base, 'mappings', 'mixamo.sk.json')
+sk_path = op.join(moctor_base, 'mappings', 'default.sk.json')
 with open(sk_path, 'w') as _file:
     json.dump(map_sk, _file, indent=2)
