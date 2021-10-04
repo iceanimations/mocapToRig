@@ -94,7 +94,7 @@ def getMappingElement(mapping, index):
 
 
 def getMappingRoot(mapping):
-    return getMappingElement(mapping, 1)
+    return getMappingElement(mapping, 0) or getMappingElement(mapping, 1)
 
 
 def getHikDefFromSKRoot(namespace, skRoot):
@@ -268,9 +268,9 @@ def mapRigControls(namespace, defname, rigControlsMappings):
     pc.select(selection)
 
 
-def mapMocap(mappingName):
+def mapMocap(prefix, mappingName):
     mapping = loadMapping(mappingName)
-    defname = mapMocapSkeleton('', mapping)
+    defname = mapMocapSkeleton(prefix, mapping)
     return defname
 
 
@@ -282,10 +282,10 @@ def mapRig(namespace, mappingName):
     return defname
 
 
-def getMocapHikDefinition(mappingName):
+def getMocapHikDefinition(prefix, mappingName):
     mapping = loadMapping(mappingName)
     root = getMappingRoot(mapping)
-    return getHikDefFromSKRoot('', root)
+    return getHikDefFromSKRoot(prefix, root)
 
 
 def getRigHikDefinition(namespace, mappingName):
@@ -370,12 +370,12 @@ def linkMocapHikToRigHik(mocapDefinition, rigDefinition):
     pc.mel.hikSetCharacterInput(rigDefinition, mocapDefinition)
 
 
-def bakeRig(namespace, mocapMappingName, rigMappingName):
+def bakeRig(namespace, prefix, mocapMappingName, rigMappingName):
     mocapMapping = loadMapping(mocapMappingName, typ=MappingTypes.sk)
     rigMapping = loadMapping(rigMappingName, typ=MappingTypes.cr)
 
     mocapRoot = getMappingRoot(mocapMapping)
-    startFrame, endFrame = getAnimRange(mocapRoot)
+    startFrame, endFrame = getAnimRange(prefix + mocapRoot)
 
     selection = pc.selected()
     getRigControls(namespace, rigMapping, True)
@@ -461,10 +461,10 @@ def importRig(rigPath):
     return namespace
 
 
-def deleteMocap(mapName):
+def deleteMocap(prefix, mapName):
     mapping = loadMapping(mapName)
     root = getMappingRoot(mapping)
-    pc.delete(root)
+    pc.delete(prefix + root)
 
 
 def cleanupMocapHIK(definition):
@@ -484,6 +484,23 @@ def cleanupRigHIK(definition):
 def cleanupHIK(mocapRoot):
     cleanupMocapHIK()
     cleanupRigHIK()
+
+
+def getPrefixFromSelection():
+    try:
+        control = pc.selected()[0]
+    except IndexError:
+        pc.warning('No selection found in the scene')
+        return "-1"
+    prefix = control.namespace()
+    if not prefix:
+        name = control.name()
+        name = name.split('|')[-1]
+        if '_' in name:
+            prefix = name.split('_')[0] + '_'
+    elif not prefix.endswith(':'):
+        prefix + ":"
+    return prefix
 
 
 def getNamespaceFromSelection():
@@ -530,11 +547,12 @@ def prepareHIK(startFrame=0):
     pc.currentTime(startFrame)
 
 
-def setRange(arg):
+def setRange(arg, prefix=''):
     if isinstance(arg, dict):
         mocapRoot = getMappingRoot(arg)
     else:
         mocapRoot = arg
+    mocapRoot = prefix + mocapRoot
     startFrame, endFrame = getAnimRange(mocapRoot)
     pc.playbackOptions(minTime=startFrame, maxTime=endFrame)
 

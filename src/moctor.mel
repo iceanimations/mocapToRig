@@ -47,107 +47,142 @@ global proc Mocap2RigUI() {
 			{ // first row: Import and Reference
 				{ // mocap Frame
 					frameLayout -label "Mocap"; // for mocap
-					columnLayout -adjustableColumn true;
-						optionMenuGrp
-							-label "Mapping:"
-							-extraLabel ".sk.json"
-							-columnAttach3 left left left
-							-columnAlign3 left left right
-							-columnWidth3 50 130 50
-							-changeCommand "moctor_UpdateUI()"
-							moctor_MocapOMG;
-						menuItem -label "iPi";
-						menuItem -label "mixamo";
-						menuItem -label "Orion01";
-            menuItem -label "Rokoko";
-            menuItem -label "default";
-            menuItem -label "hik";
-						textFieldButtonGrp
-							-label "Mocap:"
-							-text ""
-							-ad3 2
-							-cw3 50 150 50
-							-buttonLabel "..."
-							-buttonCommand "moctor_BrowseMocap()"
-							moctor_MocapFile;
-						button -label "Import Mocap" -c "moctor_ImportMocap()";
-						text -l "" moctor_MocapStatusLabel;
-						rowLayout -nc 2 -adj true;
-							button -l "Go To T-pose Frame" -c "moctor_TPoseFrame()"
-									moctor_TPoseFrameBtn;
-							button -l "Set Range" -c "moctor_SetRange()"
-									moctor_SetRangeBtn;
-							setParent ..;
-						rowLayout -nc 2 -adj true -cw2 115 115 -width 20
-						-height 40;
-							text -l "";
-							text -l "";
-							setParent ..;
-						rowLayout -nc 3 -adj true;
-							button -l "Mocap Zero Out" -c
-								"moctor_MocapZeroOut()"
-								moctor_MocapZeroOutBtn;
-							button -l "Fix Mocap T-pose" -c
-								"moctor_FixMocapTPose()"
-								moctor_FixMocapTPoseBtn;
-							button -l "Set Key" -c "moctor_MocapSetKeyframe()"
-								moctor_MocapSetKeyframeBtn;
-							setParent..;
-						setParent ..; // back to frameLayout for mocap
+            columnLayout -adjustableColumn true;
+
+              optionMenuGrp
+                -label "Mapping:"
+                -extraLabel ".sk.json"
+                -columnAttach3 left left left
+                -columnAlign3 left left right
+                -columnWidth3 50 130 50
+                -changeCommand "moctor_UpdateUI()"
+                moctor_MocapOMG;
+                menuItem -label "iPi";
+                menuItem -label "mixamo";
+                menuItem -label "Orion01";
+                menuItem -label "Rokoko";
+                menuItem -label "default";
+                menuItem -label "hik";
+
+              textFieldButtonGrp
+                -label "Mocap:"
+                -text ""
+                -ad3 2
+                -cw3 50 150 50
+                -buttonLabel "..."
+                -buttonCommand "moctor_BrowseMocap()"
+                moctor_MocapFile;
+
+              button -label "Import Mocap" -c "moctor_ImportMocap()";
+              text -l "" moctor_MocapStatusLabel;
+
+              rowLayout -nc 2 -ad2 2 -cw2 160 90;
+                optionMenuGrp -label "Prefix"
+                  -changeCommand "moctor_SetMocapPrefix()"
+                  -cw2 60 100
+                  moctor_MocapPrefixOMG;
+                menuItem -l "Specified:";
+                menuItem -l "From Selection";
+                textField
+                  -changeCommand "moctor_UpdateUI()"
+                  moctor_MocapPrefixField;
+                setParent ..;
+
+              rowLayout -nc 2 -adj true;
+                button -l "Go To T-pose Frame" -c "moctor_TPoseFrame()"
+                    moctor_TPoseFrameBtn;
+                button -l "Set Range" -c "moctor_SetRange()"
+                    moctor_SetRangeBtn;
+                setParent ..;
+
+
+
+
+              text -l "";
+              rowLayout -nc 3 -adj true;
+                button -l "Mocap Zero Out" -c
+                  "moctor_MocapZeroOut()"
+                  moctor_MocapZeroOutBtn;
+                button -l "Fix Mocap T-pose" -c
+                  "moctor_FixMocapTPose()"
+                  moctor_FixMocapTPoseBtn;
+                button -l "Set Key" -c "moctor_MocapSetKeyframe()"
+                  moctor_MocapSetKeyframeBtn;
+                setParent..; // Exit rowLayout
+
+              text -l "";
+              setParent ..; // Exit ColumnLayout
 					setParent ..; // Exit frameLayout
 				}
 
 				{ // rig Frame
 					frameLayout -label "Rig";
-					columnLayout -adjustableColumn true;
-					optionMenuGrp
-						-label "Mapping"
-						-extraLabel ".cr.json"
-						-columnAttach3 left left left
-						-columnAlign3 left left right
-						-columnWidth3 50 130 50
-						-changeCommand "moctor_UpdateUI()"
-						moctor_RigOMG;
-					menuItem -label "AdvancedSkeleton";
-					menuItem -label "BilalRig";
-          menuItem -label "AdvancedSkeleton2";
-					textFieldButtonGrp
-						-label "Rig:"
-						-text ""
-						-ad3 2
-						-cw3 50 150 50
-						-buttonLabel "..."
-						-buttonCommand "moctor_BrowseRig()"
-						moctor_RigFile;
-					button -label "Import Rig"
-						-command
-						"moctor_ImportRig()";
-					text -l "" moctor_RigStatusLabel;
-					rowLayout -nc 2 -ad2 2 -cw2 160 90;
-					optionMenuGrp -label "Namespace"
-						-changeCommand "moctor_SetRigNamespace()"
-						-cw2 60 100
-						moctor_RigNamspaceOMG;
-					menuItem -l "Specified:";
-					menuItem -l "From Reference";
-					menuItem -l "From Selection";
-					textField
-						-changeCommand "moctor_UpdateUI()"
-						moctor_RigNamespaceField;
-					setParent ..;
-					setParent ..; // exit columnLayout;
-					rowLayout -nc 2 -adj true -cw2 115 115 -width 20;
-						button -l "Select Rig Controls"
-							-c "moctor_SelectControls()"
-							moctor_SelectControlsBtn;
-						button -l "Hide Rig Skeleton"
-							-c "moctor_HideRigSkeleton()"
-							moctor_HideRigSkeletonBtn;
-						setParent ..;
-					button -l "Fix TPose" -c "moctor_FixTPose()"
-						moctor_FixTPoseBtn;
-					setParent ..; // Exiting frameLayout
+            columnLayout -adjustableColumn true;
 
+              optionMenuGrp
+                -label "Mapping"
+                -extraLabel ".cr.json"
+                -columnAttach3 left left left
+                -columnAlign3 left left right
+                -columnWidth3 50 130 50
+                -changeCommand "moctor_UpdateUI()"
+                moctor_RigOMG;
+                menuItem -label "AdvancedSkeleton";
+                menuItem -label "BilalRig";
+                menuItem -label "AdvancedSkeleton2";
+
+
+
+
+              textFieldButtonGrp
+                -label "Rig:"
+                -text ""
+                -ad3 2
+                -cw3 50 150 50
+                -buttonLabel "..."
+                -buttonCommand "moctor_BrowseRig()"
+                moctor_RigFile;
+
+              button -label "Import Rig" -command "moctor_ImportRig()";
+              text -l "" moctor_RigStatusLabel;
+
+              rowLayout -nc 2 -ad2 2 -cw2 160 90;
+                optionMenuGrp -label "Namespace"
+                  -changeCommand "moctor_SetRigNamespace()"
+                  -cw2 60 100
+                  moctor_RigNamespaceOMG;
+                menuItem -l "Specified:";
+                menuItem -l "From Reference";
+                menuItem -l "From Selection";
+                textField
+                  -changeCommand "moctor_UpdateUI()"
+                  moctor_RigNamespaceField;
+                setParent ..;
+
+              rowLayout -nc 2 -adj true -cw2 115 115;
+                button -l "Select Rig Controls"
+                  -c "moctor_SelectControls()"
+                  moctor_SelectControlsBtn;
+                button -l "Hide Rig Skeleton"
+                  -c "moctor_HideRigSkeleton()"
+                  moctor_HideRigSkeletonBtn;
+                setParent ..;
+
+              text -l "";
+              button -l "Fix TPose" -c "moctor_FixTPose()"
+                moctor_FixTPoseBtn;
+
+
+
+
+
+
+
+
+
+              text -l "";
+              setParent ..; // exit columnLayout;
+          setParent ..; // Exiting frameLayout
 				}
 
 				button -l "Import Mocap and Rig" -c "moctor_ImportBoth()"
@@ -201,7 +236,8 @@ global proc Mocap2RigUI() {
 
 	showWindow Mocap2RigUI;
 
-	optionMenuGrp -e -select 3 moctor_RigNamspaceOMG;
+	optionMenuGrp -e -select 3 moctor_RigNamespaceOMG;
+	moctor_SetMocapPrefix();
 	moctor_SetRigNamespace();
 	moctor_UpdateUI();
 }
@@ -246,14 +282,17 @@ proc string retrieveMocapPath(string $root) {
 
 global proc string moctor_CheckMocapStatus() {
 	string $mapping = `optionMenuGrp -q -v moctor_MocapOMG`;
+  string $prefix = `textField -q -text moctor_MocapPrefixField`;
 	string $root = python(
-			`format -s $mapping "moctor.checkMappingRoot('^1s')"`);
+			`format -s $mapping -s $prefix
+        "moctor.checkMappingRoot('^1s', '^2s')"`);
 	float $color[] = {
 			1, 0, 0 };
 	string $str = "OK: ";
 	if ($root != "") {
 		int $matches[] = python(
-				`format -s $mapping "moctor.checkMappingCount('^1s')"`);
+				`format -s $mapping -s $prefix
+          "moctor.checkMappingCount('^1s', '^2s')"`);
 		$str += `format
 				-s ((string)($matches[0])) -s ((string)($matches[1]))
 				"^1s of ^2s found"`;
@@ -307,14 +346,23 @@ global proc moctor_TPoseFrame() {
 
 global proc moctor_MocapZeroOut() {
 	$mapping = `optionMenuGrp -q -v moctor_MocapOMG`;
-	python(`format -s $mapping
-			"moctor.mocapZeroOut('', moctor.loadMapping('^1s'))"`);
+  $prefix = moctor_GetMocapPrefix();
+	python(`format -s $prefix -s $mapping
+			"moctor.mocapZeroOut('^1s', moctor.loadMapping('^2s'))"`);
 }
 
 global proc moctor_SetRange() {
+  $prefix = moctor_GetMocapPrefix();
 	$mapping = `optionMenuGrp -q -v moctor_MocapOMG`;
-	python(`format -s $mapping
-			"moctor.setRange(moctor.loadMapping('^1s'))"`);
+	python(
+      `format -s $mapping -s $prefix
+        "moctor.setRange(moctor.loadMapping('^1s'), '^2s')"`);
+}
+
+global proc string moctor_GetMocapPrefix() {
+	string $prefix = `textField -q -text moctor_MocapPrefixField`;
+  $prefix = strip($prefix);
+	return $prefix;
 }
 
 proc string getRigNamespace() {
@@ -323,6 +371,12 @@ proc string getRigNamespace() {
 		$namespace += ":";
 	}
 	return $namespace;
+}
+
+proc setMocapPrefix(string $prefix) {
+	string $prefix = `textField -e
+			-text $prefix moctor_MocapPrefixField`;
+	moctor_UpdateUI();
 }
 
 proc setRigNamespace(string $namespace) {
@@ -334,8 +388,25 @@ proc setRigNamespace(string $namespace) {
 	moctor_UpdateUI();
 }
 
+global proc string moctor_SetMocapPrefix() {
+	string $option = `optionMenuGrp -q -v moctor_MocapPrefixOMG`;
+	string $old_pfx = moctor_GetMocapPrefix();
+	string $new_pfx = $old_pfx;
+	switch($option){
+		case "Specified:":
+			break;
+		case "From Selection":
+			$new_pfx = python("moctor.getPrefixFromSelection()");
+			break;
+	}
+	if ($new_pfx != "-1" && $old_pfx != $new_pfx)
+		setMocapPrefix($new_pfx);
+	optionMenuGrp -e -sl 1 moctor_MocapPrefixOMG;
+	return $new_pfx;
+}
+
 global proc string moctor_SetRigNamespace() {
-	string $option = `optionMenuGrp -q -v moctor_RigNamspaceOMG`;
+	string $option = `optionMenuGrp -q -v moctor_RigNamespaceOMG`;
 	string $old_ns = getRigNamespace();
 	string $new_ns = $old_ns;
 	switch($option){
@@ -352,7 +423,7 @@ global proc string moctor_SetRigNamespace() {
 	}
 	if ($new_ns != "-1" && $old_ns != $new_ns)
 		setRigNamespace($new_ns);
-	optionMenuGrp -e -sl 1 moctor_RigNamspaceOMG;
+	optionMenuGrp -e -sl 1 moctor_RigNamespaceOMG;
 	return $new_ns;
 }
 
@@ -472,7 +543,10 @@ global proc moctor_ImportBoth() {
 
 proc string getMocapDefinition() {
 	$mapping = `optionMenuGrp -q -v moctor_MocapOMG`;
-	$mocapDef = python(`format -s $mapping "moctor.getMocapHikDefinition('^1s')"`);
+  $prefix = moctor_GetMocapPrefix();
+	$mocapDef = python(
+      `format -s $prefix -s $mapping
+        "moctor.getMocapHikDefinition('^1s', '^2s')"`);
 	if ($mocapDef == "") {
 		button -e -enable false moctor_CleanupMocapHIKBtn;
 		button -e -enable false moctor_CleanupBothHIKBtn;
@@ -485,8 +559,9 @@ proc string getMocapDefinition() {
 proc string getRigDefinition() {
 	$rigMappingName = `optionMenuGrp -q -v moctor_RigOMG`;
 	$namespace = `textField -q -text moctor_RigNamespaceField`;
-	$rigDef = python(`format -s $namespace -s $rigMappingName
-			"moctor.getRigHikDefinition('^1s', '^2s')"`);
+	$rigDef = python(
+      `format -s $namespace -s $rigMappingName
+        "moctor.getRigHikDefinition('^1s', '^2s')"`);
 	if ($rigDef == "") {
 		text -e -l "" moctor_RigMappingStatus;
 		button -e -enable false moctor_CleanupRigHIKBtn;
@@ -521,7 +596,7 @@ proc string getRigMappingStatus() {
 }
 
 global proc string[] setMocapHikAsRigHikSource() {
-	string $defs[] ={};
+	string $defs[] = {};
 	string $mocapDef = `text -q -l moctor_MocapMappingStatus`;
 	if ($mocapDef == "") {
 		$mocapDef = getMocapDefinition();
@@ -547,8 +622,9 @@ global proc string[] setMocapHikAsRigHikSource() {
 global proc string moctor_MapMocap() {
 	moctor_SetRange();
 	string $mapName = `optionMenuGrp -q -v moctor_MocapOMG`;
-	string $defname = python(`format
-			-s $mapName "moctor.mapMocap('^1s')"`);
+  string $prefix = moctor_GetMocapPrefix();
+	string $defname = python(
+      `format -s $prefix -s $mapName "moctor.mapMocap('^1s', '^2s')"`);
 	text -e -l $defname moctor_MocapMappingStatus;
 	catch(`setMocapHikAsRigHikSource`);
 	moctor_UpdateUI();
@@ -594,10 +670,13 @@ global proc moctor_SelectControls() {
 
 global proc moctor_BakeRig() {
 	$namespace = getRigNamespace();
+  $prefix = moctor_GetMocapPrefix();
 	$mocapMap = `optionMenuGrp -q -v moctor_MocapOMG`;
 	$rigMap = `optionMenuGrp -q -v moctor_RigOMG`;
-	$mocapRoot = python(`format -s $mocapMap
-			"moctor.getMappingRoot(moctor.loadMapping('^1s'))"`);
+	$mocapRoot = python(
+      `format -s $mocapMap
+        "moctor.getMappingRoot(moctor.loadMapping('^1s'))"`);
+  $mocapRoot = $prefix + $mocapRoot;
 
 	float $frames[];
 	string $sf, $ef;
@@ -636,8 +715,11 @@ global proc moctor_CleanupBothHIK() {
 }
 
 global proc moctor_DeleteMocap() {
+  $prefix = moctor_GetMocapPrefix();
 	$mocapMapping = `optionMenuGrp -q -v moctor_MocapOMG`;
-	python(`format -s $mocapMapping "moctor.deleteMocap('^1s')"`);
+	python(
+      `format -s $prefix -s $mocapMapping
+        "moctor.deleteMocap('^1s', '^2s')"`);
 	moctor_UpdateUI();
 }
 
@@ -684,14 +766,18 @@ global proc moctor_UpdateUI() {
 }
 
 global proc moctor_FixMocapTPose() {
+  string $prefix = moctor_GetMocapPrefix();
 	string $map = `optionMenuGrp -q -v moctor_MocapOMG`;
-	python(`format -s $map "moctor.fixMocapTPose('', '^1s')"`);
+	python(
+      `format -s $prefix -s $map
+        "moctor.fixMocapTPose('^1s', '^2s')"`);
 }
 
 global proc moctor_MocapSetKeyframe() {
 	$mapping = `optionMenuGrp -q -v moctor_MocapOMG`;
-	python(`format -s $mapping
-			"moctor.mocapSetKeyframe('', moctor.loadMapping('^1s'))"`);
+  $prefix = moctor_GetMocapPrefix();
+	python(`format -s $prefix -s $mapping
+			"moctor.mocapSetKeyframe('^1s', moctor.loadMapping('^2s'))"`);
 }
 
 global proc moctor_FixTPose() {
