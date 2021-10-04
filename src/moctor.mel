@@ -129,7 +129,7 @@ global proc Mocap2RigUI() {
                 moctor_RigOMG;
                 menuItem -label "AdvancedSkeleton";
                 menuItem -label "BilalRig";
-                menuItem -label "AdvancedSkeleton2";
+
 
 
 
