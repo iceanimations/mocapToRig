@@ -63,6 +63,7 @@ global proc Mocap2RigUI() {
                 menuItem -label "Rokoko";
                 menuItem -label "default";
                 menuItem -label "hik";
+                menuItem -label "MetaHuman";
 
               textFieldButtonGrp
                 -label "Mocap:"
@@ -129,6 +130,7 @@ global proc Mocap2RigUI() {
                 moctor_RigOMG;
                 menuItem -label "AdvancedSkeleton";
                 menuItem -label "BilalRig";
+                menuItem -label "MetaHuman";
 
 
 
